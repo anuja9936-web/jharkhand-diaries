@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { LocateFixed, List, Map as MapIcon, RotateCcw, Search } from 'lucide-react';
 import { DestinationCard } from '../../components/destinations/DestinationCard';
+import { FavouriteButton } from '../../components/destinations/FavouriteButton';
 import { ErrorState, LoadingState, PageHeader } from '../../components/common/StateBlocks';
 import { TourismMap } from '../../components/map/TourismMap';
 import { Badge, Button, Card, Input } from '../../components/ui';
@@ -14,6 +15,7 @@ import { getPublishedDestinations } from '../../services/destinations/destinatio
 import type { Destination } from '../../types/destination';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { useTouristFavourites } from '../../hooks/useTouristFavourites';
 
 type MobileView = 'map' | 'list';
 
@@ -30,6 +32,7 @@ export function ExplorePage() {
   const [mobileView, setMobileView] = useState<MobileView>(INITIAL_MOBILE_VIEW);
   const { location: userLocation, status: locationStatus, errorMessage, requestLocation, clearError } =
     useGeolocation();
+  const touristFavourites = useTouristFavourites();
 
   useEffect(() => {
     let isMounted = true;
@@ -125,6 +128,29 @@ export function ExplorePage() {
     setActiveCategory('all');
     setSelectedDestination(null);
   };
+
+  const renderFavouriteAction = (destination: Destination) => (
+    <FavouriteButton
+      isFavourite={touristFavourites.isFavourite(destination.id)}
+      loading={touristFavourites.pendingDestinationId === destination.id}
+      canSave={touristFavourites.isAuthenticated ? touristFavourites.isTourist : true}
+      onToggle={
+        touristFavourites.isAuthenticated && touristFavourites.isTourist
+          ? () =>
+              void touristFavourites.toggleFavourite(destination.id).catch((error) => {
+                window.alert(error instanceof Error ? error.message : 'Unable to update favourites.');
+              })
+          : undefined
+      }
+      compact
+      className="bg-white/90 text-ink-900 shadow-lg backdrop-blur-sm"
+      loginHref="/login"
+      saveLabel="Save"
+      savedLabel="Saved"
+      loginLabel="Login to save"
+      touristOnlyLabel="Tourist only"
+    />
+  );
 
   if (isLoading) {
     return <LoadingState label="Loading Jharkhand destinations..." />;
@@ -288,6 +314,7 @@ export function ExplorePage() {
                 destination={destination}
                 isActive={destination.slug === selectedDestination?.slug}
                 onShowOnMap={handleShowOnMap}
+                topRightAction={renderFavouriteAction(destination)}
               />
             ))}
           </div>
@@ -330,14 +357,15 @@ export function ExplorePage() {
 
             <div className="max-h-[760px] space-y-4 overflow-y-auto pr-1">
               {filteredDestinations.map((destination) => (
-                <DestinationCard
-                  key={destination.id}
-                  destination={destination}
-                  isActive={destination.slug === selectedDestination?.slug}
-                  onShowOnMap={handleShowOnMap}
-                />
-              ))}
-            </div>
+              <DestinationCard
+                key={destination.id}
+                destination={destination}
+                isActive={destination.slug === selectedDestination?.slug}
+                onShowOnMap={handleShowOnMap}
+                topRightAction={renderFavouriteAction(destination)}
+              />
+            ))}
+          </div>
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
 } from 'react';
 import { cn } from '../../lib/utils';
 
@@ -93,6 +94,18 @@ export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectE
     <select
       className={cn(
         'w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm text-ink-900 outline-none transition focus:border-clay-400 focus:ring-2 focus:ring-clay-200',
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      className={cn(
+        'min-h-[10rem] w-full rounded-xl border border-ink-200 bg-white px-4 py-3 text-sm text-ink-900 outline-none transition focus:border-clay-400 focus:ring-2 focus:ring-clay-200',
         className
       )}
       {...props}

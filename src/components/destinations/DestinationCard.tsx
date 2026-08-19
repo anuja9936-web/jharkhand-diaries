@@ -4,15 +4,18 @@ import { DEFAULT_DESTINATION_IMAGE, getDestinationCategoryLabel } from '../../co
 import type { Destination } from '../../types/destination';
 import { formatIndianCurrency } from '../../lib/utils';
 import { Badge, Button, Card } from '../ui';
+import type { ReactNode } from 'react';
 
 export function DestinationCard({
   destination,
   isActive = false,
   onShowOnMap,
+  topRightAction,
 }: {
   destination: Destination;
   isActive?: boolean;
   onShowOnMap?: (destination: Destination) => void;
+  topRightAction?: ReactNode;
 }) {
   const coverImage = destination.cover_image || DEFAULT_DESTINATION_IMAGE;
 
@@ -40,6 +43,7 @@ export function DestinationCard({
             </Badge>
           ) : null}
         </div>
+        {topRightAction ? <div className="absolute right-4 top-4">{topRightAction}</div> : null}
       </div>
 
       <div className="space-y-4 p-5">

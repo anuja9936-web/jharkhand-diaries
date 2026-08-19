@@ -20,7 +20,8 @@ export const publicNavItems: NavItem[] = [
 export const touristNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/tourist', icon: Home },
   { label: 'Explore', href: '/tourist/explore', icon: Compass },
-  { label: 'Itinerary', href: '/tourist/itinerary', icon: MapPin },
+  { label: 'Trips', href: '/tourist/itinerary', icon: MapPin },
+  { label: 'Profile', href: '/tourist/profile', icon: Users },
   { label: 'Audio Guide', href: '/tourist/audio-guide', icon: Users },
   { label: 'Eco Passport', href: '/tourist/eco-passport', icon: ShieldCheck },
   { label: 'AR Craft', href: '/tourist/ar', icon: Globe2 },

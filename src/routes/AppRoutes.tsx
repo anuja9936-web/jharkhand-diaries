@@ -19,12 +19,15 @@ import { LoginPage } from '../pages/auth/LoginPage';
 import { RegisterPage } from '../pages/auth/RegisterPage';
 import {
   TouristAudioGuidePage,
-  TouristDashboardPage,
   TouristEcoPassportPage,
   TouristExplorePage,
-  TouristItineraryPage,
   TouristARPage,
 } from '../pages/tourist/TouristPages';
+import { TouristDashboardPage } from '../pages/tourist/TouristDashboardPage';
+import { TouristProfilePage } from '../pages/tourist/TouristProfilePage';
+import { TouristTripDetailPage } from '../pages/tourist/TouristTripDetailPage';
+import { TouristTripFormPage } from '../pages/tourist/TouristTripFormPage';
+import { TouristTripsPage } from '../pages/tourist/TouristTripsPage';
 import {
   VendorAnalyticsPage,
   VendorDashboardPage,
@@ -72,7 +75,10 @@ export function AppRoutes() {
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<TouristDashboardPage />} />
         <Route path="explore" element={<TouristExplorePage />} />
-        <Route path="itinerary" element={<TouristItineraryPage />} />
+        <Route path="itinerary" element={<TouristTripsPage />} />
+        <Route path="itinerary/new" element={<TouristTripFormPage />} />
+        <Route path="itinerary/:tripId" element={<TouristTripDetailPage />} />
+        <Route path="profile" element={<TouristProfilePage />} />
         <Route path="audio-guide" element={<TouristAudioGuidePage />} />
         <Route path="eco-passport" element={<TouristEcoPassportPage />} />
         <Route path="ar" element={<TouristARPage />} />

@@ -9,6 +9,27 @@ alter table public.profiles
 alter table public.profiles
   add column if not exists avatar_url text;
 
+do $$
+begin
+  if exists (
+    select 1
+    from pg_type t
+    join pg_enum e on e.enumtypid = t.oid
+    where t.typnamespace = 'public'::regnamespace
+      and t.typname = 'user_role'
+      and e.enumlabel = 'vendor'
+  ) and not exists (
+    select 1
+    from pg_type t
+    join pg_enum e on e.enumtypid = t.oid
+    where t.typnamespace = 'public'::regnamespace
+      and t.typname = 'user_role'
+      and e.enumlabel = 'provider'
+  ) then
+    alter type public.user_role rename value 'vendor' to 'provider';
+  end if;
+end $$;
+
 update public.profiles
 set role = 'provider'
 where role::text = 'vendor';
