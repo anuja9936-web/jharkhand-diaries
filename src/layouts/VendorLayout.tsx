@@ -4,12 +4,11 @@ import { DashboardShell } from '../components/layout/DashboardShell';
 export function VendorLayout() {
   return (
     <DashboardShell
-      role="vendor"
-      title="Vendor dashboard"
-      description="A workspace for local artisans, homestays, guides, transport providers, and service operators."
+      role="provider"
+      title="Service provider dashboard"
+      description="A workspace for local artisans, homestays, guides, transport providers, and local service operators."
     >
       <Outlet />
     </DashboardShell>
   );
 }
-

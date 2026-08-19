@@ -1,7 +1,6 @@
 import type { ComponentType } from 'react';
 import { ArrowRight, AudioLines, Globe, HandCoins, Leaf, MapPinned, Sparkles, Bot, Camera } from 'lucide-react';
-import { SignIn, SignUp } from '@clerk/clerk-react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Button, Badge, Card } from '../../components/ui';
 import {
   NotFoundState,
@@ -285,55 +284,11 @@ export function AboutPage() {
 }
 
 export function SignInPage() {
-  return (
-    <div className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-7xl place-items-center px-4 py-12 sm:px-6 lg:px-8">
-      <Card className="grid w-full gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="space-y-4">
-          <Badge variant="accent">Welcome back</Badge>
-          <h1 className="font-display text-3xl font-bold text-ink-900">Sign in to continue</h1>
-          <p className="text-sm leading-6 text-ink-600">
-            Authentication is powered by Clerk. Your application role will eventually be synchronized from Supabase.
-          </p>
-          <div className="rounded-3xl bg-sand p-5 text-sm leading-6 text-ink-700">
-            <p className="font-semibold text-ink-900">Role note</p>
-            <p className="mt-2">
-              Sign-in only handles identity. Tourist, vendor, and admin access will be determined separately by the
-              application profile.
-            </p>
-          </div>
-        </div>
-        <div className="rounded-3xl border border-ink-200 bg-white p-4">
-          <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" />
-        </div>
-      </Card>
-    </div>
-  );
+  return <Navigate to="/login" replace />;
 }
 
 export function SignUpPage() {
-  return (
-    <div className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-7xl place-items-center px-4 py-12 sm:px-6 lg:px-8">
-      <Card className="grid w-full gap-8 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="space-y-4">
-          <Badge variant="accent">Join the platform</Badge>
-          <h1 className="font-display text-3xl font-bold text-ink-900">Create your account</h1>
-          <p className="text-sm leading-6 text-ink-600">
-            Create a Clerk identity first, then we will attach a profile and role in the application layer.
-          </p>
-          <div className="rounded-3xl bg-white p-5 text-sm leading-6 text-ink-700">
-            <p className="font-semibold text-ink-900">What happens next</p>
-            <p className="mt-2">
-              Later phases will connect your account to a tourist, vendor, or admin profile depending on the
-              backend-managed role assignment.
-            </p>
-          </div>
-        </div>
-        <div className="rounded-3xl border border-ink-200 bg-white p-4">
-          <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" />
-        </div>
-      </Card>
-    </div>
-  );
+  return <Navigate to="/register" replace />;
 }
 
 export function UnauthorizedPage() {

@@ -26,13 +26,13 @@ export const touristNavItems: NavItem[] = [
   { label: 'AR Craft', href: '/tourist/ar', icon: Globe2 },
 ];
 
-export const vendorNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/vendor', icon: Home },
-  { label: 'Profile', href: '/vendor/profile', icon: Users },
-  { label: 'Verification', href: '/vendor/verification', icon: ShieldCheck },
-  { label: 'Listings', href: '/vendor/listings', icon: Store },
-  { label: 'Payments', href: '/vendor/payments', icon: BarChart3 },
-  { label: 'Analytics', href: '/vendor/analytics', icon: Compass },
+export const providerNavItems: NavItem[] = [
+  { label: 'Dashboard', href: '/provider', icon: Home },
+  { label: 'Profile', href: '/provider/profile', icon: Users },
+  { label: 'Verification', href: '/provider/verification', icon: ShieldCheck },
+  { label: 'Listings', href: '/provider/listings', icon: Store },
+  { label: 'Payments', href: '/provider/payments', icon: BarChart3 },
+  { label: 'Analytics', href: '/provider/analytics', icon: Compass },
 ];
 
 export const adminNavItems: NavItem[] = [
@@ -45,7 +45,6 @@ export const adminNavItems: NavItem[] = [
 
 export const roleNavMap: Record<UserRole, NavItem[]> = {
   [USER_ROLES.TOURIST]: touristNavItems,
-  [USER_ROLES.VENDOR]: vendorNavItems,
+  [USER_ROLES.PROVIDER]: providerNavItems,
   [USER_ROLES.ADMIN]: adminNavItems,
 };
-

@@ -2,13 +2,15 @@ import type { Profile, UserRole } from '../../types/common';
 import { supabase } from '../../lib/supabase';
 
 export interface CreateProfileInput {
-  clerk_user_id: string;
+  id: string;
   full_name: string | null;
   email: string | null;
   role: UserRole;
+  phone?: string | null;
+  avatar_url?: string | null;
 }
 
-export async function getProfileByClerkUserId(clerkUserId: string): Promise<Profile | null> {
+export async function getProfileByUserId(userId: string): Promise<Profile | null> {
   if (!supabase) {
     return null;
   }
@@ -16,7 +18,7 @@ export async function getProfileByClerkUserId(clerkUserId: string): Promise<Prof
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('clerk_user_id', clerkUserId)
+    .eq('id', userId)
     .maybeSingle();
 
   if (error) {
@@ -54,8 +56,24 @@ export async function upsertProfile(input: CreateProfileInput): Promise<Profile>
   return data as Profile;
 }
 
-export async function getRoleForClerkUserId(clerkUserId: string): Promise<UserRole | null> {
-  const profile = await getProfileByClerkUserId(clerkUserId);
-  return profile?.role ?? null;
+export async function updateProfile(
+  userId: string,
+  updates: Partial<Pick<Profile, 'full_name' | 'email' | 'phone' | 'avatar_url'>>
+): Promise<Profile> {
+  if (!supabase) {
+    throw new Error('Supabase is not configured.');
+  }
+
+  const { data, error } = await supabase.from('profiles').update(updates).eq('id', userId).select('*').single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as Profile;
 }
 
+export async function getRoleForUserId(userId: string): Promise<UserRole | null> {
+  const profile = await getProfileByUserId(userId);
+  return profile?.role ?? null;
+}

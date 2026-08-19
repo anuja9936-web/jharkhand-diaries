@@ -19,7 +19,7 @@ export const clerkAppearance = {
 };
 
 export function isUserRole(value: unknown): value is UserRole {
-  return value === USER_ROLES.TOURIST || value === USER_ROLES.VENDOR || value === USER_ROLES.ADMIN;
+  return value === USER_ROLES.TOURIST || value === USER_ROLES.PROVIDER || value === USER_ROLES.ADMIN;
 }
 
 export function resolveUserRole(value: unknown): UserRole | null {

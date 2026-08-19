@@ -1,23 +1,19 @@
-import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { LoadingState } from '../components/common/StateBlocks';
+import type { ReactNode } from 'react';
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { loading, user } = useAuth();
 
-  return (
-    <ClerkLoaded>
-      <ClerkLoading>
-        <LoadingState label="Checking your access..." />
-      </ClerkLoading>
-      <SignedIn>{children}</SignedIn>
-      <SignedOut>
-        <Navigate to="/sign-in" replace state={{ from: location.pathname }} />
-      </SignedOut>
-    </ClerkLoaded>
-  );
-}
+  if (loading) {
+    return <LoadingState label="Checking your access..." />;
+  }
 
-export function ProtectedRouteFallback() {
-  return <LoadingState label="Checking your access..." />;
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  return children;
 }

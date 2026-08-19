@@ -19,7 +19,7 @@ export function RoleRoute({
   const isAllowed = allowedRoles.includes(role) || (role === 'admin' && allowedRoles.includes('admin'));
 
   if (!isAllowed) {
-    return <Navigate to="/unauthorized" replace />;
+    return <Navigate to="/access-denied" replace />;
   }
 
   return children;

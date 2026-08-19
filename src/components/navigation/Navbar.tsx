@@ -1,11 +1,20 @@
-import { ClerkLoaded, SignedIn, SignedOut, UserButton } from '@clerk/clerk-react';
 import { Menu, Sparkles } from 'lucide-react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { publicNavItems } from '../../config/navigation';
 import { siteConfig } from '../../config/site';
+import { getDashboardPathForRole } from '../../lib/auth';
+import { useAuth } from '../../hooks/useAuth';
 import { Button, Badge } from '../ui';
 
 export function Navbar() {
+  const navigate = useNavigate();
+  const { user, profile, role, loading, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/', { replace: true });
+  };
+
   return (
     <header className="sticky top-0 z-40 border-b border-ink-200/80 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
@@ -40,21 +49,30 @@ export function Navbar() {
           <Badge className="hidden md:inline-flex" variant="accent">
             Team Respawn
           </Badge>
-          <ClerkLoaded>
-            <SignedOut>
-              <div className="hidden items-center gap-2 sm:flex">
-                <Button variant="secondary" asChild>
-                  <Link to="/sign-in">Sign in</Link>
-                </Button>
-                <Button asChild>
-                  <Link to="/sign-up">Sign up</Link>
-                </Button>
-              </div>
-            </SignedOut>
-            <SignedIn>
-              <UserButton afterSignOutUrl="/" />
-            </SignedIn>
-          </ClerkLoaded>
+          {loading ? (
+            <Button variant="secondary" disabled>
+              Loading...
+            </Button>
+          ) : user ? (
+            <div className="hidden items-center gap-2 sm:flex">
+              <Badge variant="accent">{profile?.full_name ?? user.email ?? role}</Badge>
+              <Button variant="secondary" asChild>
+                <Link to={getDashboardPathForRole(role)}>Dashboard</Link>
+              </Button>
+              <Button variant="ghost" onClick={handleLogout}>
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <div className="hidden items-center gap-2 sm:flex">
+              <Button variant="secondary" asChild>
+                <Link to="/login">Sign in</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/register">Sign up</Link>
+              </Button>
+            </div>
+          )}
           <Button variant="ghost" className="lg:hidden" aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </Button>

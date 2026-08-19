@@ -1,24 +1,12 @@
-import { useUser } from '@clerk/clerk-react';
-import { getDevDefaultRole, getMetadataRole } from '../lib/clerk';
+import { useAuth } from './useAuth';
 import type { CurrentUserProfileState } from '../types/user';
 
 export function useCurrentRole(): CurrentUserProfileState {
-  const { isLoaded, user } = useUser();
-
-  if (!isLoaded) {
-    return {
-      profile: null,
-      role: 'tourist',
-      isHydrated: false,
-    };
-  }
-
-  const metadataRole = getMetadataRole(user?.publicMetadata?.role);
+  const { loading, profile, role } = useAuth();
 
   return {
-    profile: null,
-    role: metadataRole ?? getDevDefaultRole(),
-    isHydrated: true,
+    profile,
+    role,
+    isHydrated: !loading,
   };
 }
-

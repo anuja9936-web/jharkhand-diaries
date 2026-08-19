@@ -3,7 +3,7 @@ import { PageHeader, PlaceholderPage, StatCard } from '../../components/common/S
 import { Link } from 'react-router-dom';
 import { CreditCard, IndianRupee, ListChecks, ShieldCheck, UserCircle2 } from 'lucide-react';
 
-const vendorBullets = {
+const providerBullets = {
   profile: ['Business profiles and service details will be stored in Supabase later.', 'This route is ready for public identity and contact management.'],
   verification: ['Vendor KYC and document review are intentionally deferred.', 'The future workflow will live behind backend-side validation.'],
   listings: ['Listings for crafts, homestays, transport, and guides will appear here.', 'This skeleton keeps the route structure ready for those modules.'],
@@ -23,8 +23,8 @@ export function VendorDashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Vendor"
-        title="Your business workspace"
+        eyebrow="Service provider"
+        title="Service provider dashboard"
         description="A clean foundation for local providers to manage trust, discoverability, and future commerce tools."
         actions={
           <Button asChild>
@@ -53,10 +53,10 @@ export function VendorDashboardPage() {
 export function VendorProfilePage() {
   return (
     <PlaceholderPage
-      eyebrow="Vendor profile"
-      title="Vendor profile management"
+      eyebrow="Service provider profile"
+      title="Service provider profile management"
       description="A future profile area for business identity, contact details, and service presentation."
-      bullets={vendorBullets.profile}
+      bullets={providerBullets.profile}
     />
   );
 }
@@ -64,10 +64,10 @@ export function VendorProfilePage() {
 export function VendorVerificationPage() {
   return (
     <PlaceholderPage
-      eyebrow="Vendor verification"
+      eyebrow="Service provider verification"
       title="Verification status and documents"
       description="Document uploads, checks, and approval workflows will live here once we add backend support."
-      bullets={vendorBullets.verification}
+      bullets={providerBullets.verification}
     />
   );
 }
@@ -75,10 +75,10 @@ export function VendorVerificationPage() {
 export function VendorListingsPage() {
   return (
     <PlaceholderPage
-      eyebrow="Vendor listings"
+      eyebrow="Service provider listings"
       title="Listings and services"
       description="This route is reserved for artisan products, homestays, transport services, and guided experiences."
-      bullets={vendorBullets.listings}
+      bullets={providerBullets.listings}
     />
   );
 }
@@ -86,10 +86,10 @@ export function VendorListingsPage() {
 export function VendorPaymentsPage() {
   return (
     <PlaceholderPage
-      eyebrow="Vendor payments"
+      eyebrow="Service provider payments"
       title="Payments and settlements"
       description="A future view for earnings, UPI, payouts, and transaction history."
-      bullets={vendorBullets.payments}
+      bullets={providerBullets.payments}
     />
   );
 }
@@ -97,10 +97,10 @@ export function VendorPaymentsPage() {
 export function VendorAnalyticsPage() {
   return (
     <PlaceholderPage
-      eyebrow="Vendor analytics"
-      title="Vendor analytics"
+      eyebrow="Service provider analytics"
+      title="Service provider analytics"
       description="A future analytics surface for engagement, earnings, and service performance."
-      bullets={vendorBullets.analytics}
+      bullets={providerBullets.analytics}
     />
   );
 }

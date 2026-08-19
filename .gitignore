@@ -6,3 +6,4 @@ dist
 coverage
 *.log
 vite.config.ts.timestamp-*
+supabase/.temp/
