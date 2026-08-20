@@ -10,6 +10,13 @@ import {
   Sparkles,
   ArrowUpRight,
 } from 'lucide-react';
+import {
+  DESTINATION_IMAGES,
+  CUISINE_IMAGES,
+  ADVENTURE_IMAGES,
+  ART_CRAFT_IMAGES,
+  CULTURE_IMAGES,
+} from '../../constants/contentImages';
 
 interface CategoryPillar {
   id: string;
@@ -30,7 +37,7 @@ const CATEGORY_PILLARS: CategoryPillar[] = [
     description: 'Waterfalls, hills, forests and hidden escapes across the plateau.',
     icon: Compass,
     href: '/explore',
-    image: '/images/destinations/hundru-falls.jpg',
+    image: DESTINATION_IMAGES.HUNDRU_FALLS,
     badge: '24 Districts',
   },
   {
@@ -40,7 +47,7 @@ const CATEGORY_PILLARS: CategoryPillar[] = [
     description: 'Flavours rooted in Jharkhand’s traditions — Dhuska, Rugra & Karil.',
     icon: UtensilsCrossed,
     href: '#cuisine',
-    image: '/images/destinations/patratu-valley.jpg',
+    image: CUISINE_IMAGES.DHUSKA,
     badge: 'Indigenous Flavours',
   },
   {
@@ -50,7 +57,7 @@ const CATEGORY_PILLARS: CategoryPillar[] = [
     description: 'Trails, camping, rock climbing and outdoor experiences.',
     icon: Footprints,
     href: '/experiences',
-    image: '/images/destinations/dalma-hills.jpg',
+    image: ADVENTURE_IMAGES.PARASNATH_TREK,
     badge: 'Outdoor Thrills',
   },
   {
@@ -60,7 +67,7 @@ const CATEGORY_PILLARS: CategoryPillar[] = [
     description: 'Stories shaped by local hands — Sohrai, Khovar murals and Dokra casting.',
     icon: Palette,
     href: '/marketplace',
-    image: '/images/destinations/netarhat.jpg',
+    image: ART_CRAFT_IMAGES.SOHRAI_MURAL,
     badge: 'GI-Tagged Arts',
   },
   {
@@ -70,7 +77,7 @@ const CATEGORY_PILLARS: CategoryPillar[] = [
     description: 'Mandar rhythms, Chhau dance, Sarna groves and indigenous harmony.',
     icon: Music2,
     href: '#culture',
-    image: '/images/destinations/rajrappa.jpg',
+    image: CULTURE_IMAGES.CHHAU_DANCE,
     badge: 'Living Heritage',
   },
   {
@@ -80,7 +87,7 @@ const CATEGORY_PILLARS: CategoryPillar[] = [
     description: 'Forests, sanctuaries and wild encounters from Betla to Dalma.',
     icon: TreePine,
     href: '/explore?category=wildlife',
-    image: '/images/destinations/betla-national-park.jpg',
+    image: DESTINATION_IMAGES.BETLA_NATIONAL_PARK,
     badge: 'Tiger & Elephant Corridors',
   },
   {
@@ -90,7 +97,7 @@ const CATEGORY_PILLARS: CategoryPillar[] = [
     description: 'Places shaped by history, sacred Jyotirlingas and ancient stone temples.',
     icon: Landmark,
     href: '/explore?category=heritage',
-    image: '/images/destinations/deoghar-baidyanath.jpg',
+    image: DESTINATION_IMAGES.DEOGHAR_BAIDYANATH,
     badge: 'Spiritual Sanctuaries',
   },
   {
@@ -100,7 +107,7 @@ const CATEGORY_PILLARS: CategoryPillar[] = [
     description: 'Celebrations that bring communities together — Sarhul, Karma and Tusu.',
     icon: Sparkles,
     href: '/events',
-    image: '/images/destinations/jagannath-temple.jpg',
+    image: CULTURE_IMAGES.SARNA_WORSHIP,
     badge: 'Tribal Calendar',
   },
 ];
@@ -140,13 +147,13 @@ export function HomeDiscoverSection() {
 
               {/* Top Badge */}
               <div className="absolute top-3 left-3">
-                <span className="inline-flex items-center gap-1 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-md border border-white/20">
+                <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-md border border-white/20">
                   {pillar.badge}
                 </span>
               </div>
 
               {/* Corner Icon */}
-              <div className="absolute bottom-3 right-3 h-9 w-9 rounded-full bg-white/90 p-2 text-ink-900 shadow-md backdrop-blur-sm transition-transform duration-300 group-hover:scale-110 group-hover:bg-amber-400">
+              <div className="absolute bottom-3 right-3 h-9 w-9 rounded-full bg-white/95 p-2 text-ink-900 shadow-md backdrop-blur-sm transition-transform duration-300 group-hover:scale-110 group-hover:bg-amber-400">
                 <pillar.icon className="h-full w-full" />
               </div>
             </div>

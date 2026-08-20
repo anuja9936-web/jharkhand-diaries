@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Compass, LocateFixed, MapPin, Search, ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { TourismMap } from '../../components/map/TourismMap';
 import { DESTINATION_CATEGORY_LABELS, DESTINATION_CATEGORY_OPTIONS } from '../../constants/destinations';
 import { getPublishedDestinations } from '../../services/destinations/destinationService';
@@ -9,6 +9,7 @@ import type { Destination } from '../../types/destination';
 import { Button, Input } from '../../components/ui';
 
 export function MapDiscoveryPage() {
+  const [searchParams] = useSearchParams();
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -22,8 +23,21 @@ export function MapDiscoveryPage() {
         const data = await getPublishedDestinations();
         if (mounted && data) {
           setDestinations(data);
-          if (data.length > 0) {
+          const targetSlug = searchParams.get('destination');
+          const targetDistrict = searchParams.get('district');
+          if (targetSlug) {
+            const found = data.find((d) => d.slug === targetSlug || d.id === targetSlug);
+            if (found) {
+              setSelectedDestination(found);
+            } else if (data.length > 0) {
+              setSelectedDestination(data[0]);
+            }
+          } else if (data.length > 0) {
             setSelectedDestination(data[0]);
+          }
+
+          if (targetDistrict) {
+            setSearchTerm(targetDistrict);
           }
         }
       } catch (err) {
@@ -34,7 +48,17 @@ export function MapDiscoveryPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const targetSlug = searchParams.get('destination');
+    if (targetSlug && destinations.length > 0) {
+      const found = destinations.find((d) => d.slug === targetSlug || d.id === targetSlug);
+      if (found) {
+        setSelectedDestination(found);
+      }
+    }
+  }, [searchParams, destinations]);
 
   const filteredDestinations = useMemo(() => {
     return destinations.filter((dest) => {

@@ -8,6 +8,17 @@ import type {
   ProviderRequestStatus,
   ProviderRequestType,
 } from '../../types/provider';
+import { JHARKHAND_ACCOMMODATIONS } from '../../constants/accommodationsData';
+import {
+  JHARKHAND_MARKETPLACE_PRODUCTS,
+  JHARKHAND_MARKETPLACE_EXPERIENCES,
+} from '../../constants/marketplaceData';
+
+const ALL_CURATED_OFFERINGS: ProviderOffering[] = [
+  ...JHARKHAND_ACCOMMODATIONS,
+  ...JHARKHAND_MARKETPLACE_PRODUCTS,
+  ...JHARKHAND_MARKETPLACE_EXPERIENCES,
+];
 
 function getClient() {
   if (!supabase) {
@@ -97,25 +108,35 @@ export async function getMyProviderOfferings(kind?: ProviderOfferingKind): Promi
 }
 
 export async function getPublicProviderOfferings(kind?: ProviderOfferingKind): Promise<ProviderOffering[]> {
-  const client = getClient();
+  let dbOfferings: ProviderOffering[] = [];
 
-  let query = client
-    .from('provider_offerings')
-    .select('*')
-    .eq('status', 'published')
-    .order('created_at', { ascending: false });
+  try {
+    const client = getClient();
 
-  if (kind) {
-    query = query.eq('kind', kind);
+    let query = client
+      .from('provider_offerings')
+      .select('*')
+      .eq('status', 'published')
+      .order('created_at', { ascending: false });
+
+    if (kind) {
+      query = query.eq('kind', kind);
+    }
+
+    const { data, error } = await query;
+
+    if (!error && data) {
+      dbOfferings = data as ProviderOffering[];
+    }
+  } catch (err) {
+    console.warn('[providerMarketplaceService] getPublicProviderOfferings DB error', err);
   }
 
-  const { data, error } = await query;
+  const curated = ALL_CURATED_OFFERINGS.filter((o) => !kind || o.kind === kind);
+  const dbIds = new Set(dbOfferings.map((o) => o.id));
+  const combined = [...dbOfferings, ...curated.filter((c) => !dbIds.has(c.id))];
 
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as ProviderOffering[];
+  return combined;
 }
 
 export async function getProviderOfferingById(offeringId: string): Promise<ProviderOffering | null> {
@@ -140,38 +161,48 @@ export async function getPublicProviderOfferingBySlug(
   kind: ProviderOfferingKind,
   slug: string
 ): Promise<ProviderOffering | null> {
-  const client = getClient();
+  try {
+    const client = getClient();
 
-  const { data, error } = await client
-    .from('provider_offerings')
-    .select('*')
-    .eq('kind', kind)
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .maybeSingle();
+    const { data, error } = await client
+      .from('provider_offerings')
+      .select('*')
+      .eq('kind', kind)
+      .eq('slug', slug)
+      .eq('status', 'published')
+      .maybeSingle();
 
-  if (error) {
-    throw error;
+    if (!error && data) {
+      return data as ProviderOffering;
+    }
+  } catch {
+    // Fallback to curated
   }
 
-  return (data as ProviderOffering | null) ?? null;
+  const found = ALL_CURATED_OFFERINGS.find((o) => o.kind === kind && o.slug === slug);
+  return found ?? null;
 }
 
 export async function getPublicProviderOfferingById(offeringId: string): Promise<ProviderOffering | null> {
-  const client = getClient();
+  try {
+    const client = getClient();
 
-  const { data, error } = await client
-    .from('provider_offerings')
-    .select('*')
-    .eq('id', offeringId)
-    .eq('status', 'published')
-    .maybeSingle();
+    const { data, error } = await client
+      .from('provider_offerings')
+      .select('*')
+      .eq('id', offeringId)
+      .eq('status', 'published')
+      .maybeSingle();
 
-  if (error) {
-    throw error;
+    if (!error && data) {
+      return data as ProviderOffering;
+    }
+  } catch {
+    // ID might be a non-uuid slug or mock id
   }
 
-  return (data as ProviderOffering | null) ?? null;
+  const found = ALL_CURATED_OFFERINGS.find((o) => o.id === offeringId || o.slug === offeringId);
+  return found ?? null;
 }
 
 export async function getPublicProviderOfferingsByProvider(

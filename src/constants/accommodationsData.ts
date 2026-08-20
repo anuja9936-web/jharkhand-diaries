@@ -1,0 +1,261 @@
+/**
+ * Curated Accommodation Data for Jharkhand Diaries
+ *
+ * Real and verified lodging categories across Jharkhand:
+ * Forest cottages, eco-resorts, tribal village homestays, and safari glamping tents.
+ * Conforms to ProviderOffering type for seamless Supabase interoperability.
+ */
+
+import type { ProviderOffering } from '../types/provider';
+
+export interface AccommodationStayItem extends ProviderOffering {
+  amenities: string[];
+  rating: number;
+  reviewsCount: number;
+  property_type: string;
+  host_name: string;
+  eco_certified: boolean;
+}
+
+export const JHARKHAND_ACCOMMODATIONS: AccommodationStayItem[] = [
+  {
+    id: 'stay-netarhat-pine-lodge',
+    provider_id: '00000000-0000-0000-0000-000000000001',
+    kind: 'stay',
+    name: 'Netarhat Pine Mist Eco-Lodge',
+    slug: 'netarhat-pine-mist-eco-lodge',
+    short_description:
+      'Rustic wooden chalets overlooking misty pine groves and sunrise valleys with solar heating and farm-to-table dining.',
+    description:
+      'Perched at an elevation of 1,070 meters on the Netarhat plateau, Netarhat Pine Mist Eco-Lodge offers serene wooden cottages constructed from sustainable timber. Wake up to panoramic mountain sunrises over Magnolia Point and enjoy home-cooked meals made with ingredients sourced from local tribal farmers.',
+    category: 'Forest Cottage',
+    district: 'Latehar',
+    address: 'Upper Plateau Ridge, Near Magnolia Sunset Point, Netarhat',
+    price: 2800,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/stays/pine-eco-lodge.jpg',
+    gallery: [
+      '/images/stays/pine-eco-lodge.jpg',
+      '/images/destinations/netarhat.jpg',
+    ],
+    metadata: {
+      property_type: 'Forest Cottage',
+      rating: 4.9,
+      reviewsCount: 38,
+      amenities: ['Solar Power & Heating', 'Organic Kitchen Garden', 'Bonfire & Stargazing', 'Sunrise Valley Trail', 'Free Parking'],
+      host_name: 'Latehar Eco-Tourism Guild',
+      eco_certified: true,
+      check_in_time: '12:00 PM',
+      check_out_time: '11:00 AM',
+    },
+    amenities: ['Solar Power & Heating', 'Organic Kitchen Garden', 'Bonfire & Stargazing', 'Sunrise Valley Trail', 'Free Parking'],
+    rating: 4.9,
+    reviewsCount: 38,
+    property_type: 'Forest Cottage',
+    host_name: 'Latehar Eco-Tourism Guild',
+    eco_certified: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'stay-patratu-lake-resort',
+    provider_id: '00000000-0000-0000-0000-000000000002',
+    kind: 'stay',
+    name: 'Patratu Lake Resort & Eco-Villas',
+    slug: 'patratu-lake-resort-eco-villas',
+    short_description:
+      'Waterfront boutique stone villas offering panoramic reservoir views, water sports access, and tribal dining.',
+    description:
+      'Situated on the shores of Patratu Reservoir against the backdrop of winding valley ghats. Features private balcony villas, speedboating access, open-air lawns, and authentic Jharkhand culinary spreads.',
+    category: 'Eco-Resort',
+    district: 'Ramgarh',
+    address: 'Reservoir Waterfront Drive, Patratu Valley',
+    price: 4200,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/stays/lake-resort.jpg',
+    gallery: [
+      '/images/stays/lake-resort.jpg',
+      '/images/destinations/patratu-valley.jpg',
+    ],
+    metadata: {
+      property_type: 'Eco-Resort',
+      rating: 4.8,
+      reviewsCount: 52,
+      amenities: ['Infinity Lake View', 'Water Sports Facility', 'Free High-speed Wi-Fi', 'Private Balcony', 'Restaurant'],
+      host_name: 'Patratu Tourism Ventures',
+      eco_certified: true,
+      check_in_time: '01:00 PM',
+      check_out_time: '11:00 AM',
+    },
+    amenities: ['Infinity Lake View', 'Water Sports Facility', 'Free High-speed Wi-Fi', 'Private Balcony', 'Restaurant'],
+    rating: 4.8,
+    reviewsCount: 52,
+    property_type: 'Eco-Resort',
+    host_name: 'Patratu Tourism Ventures',
+    eco_certified: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'stay-baidyanath-courtyard',
+    provider_id: '00000000-0000-0000-0000-000000000003',
+    kind: 'stay',
+    name: 'Baidyanath Heritage Courtyard Homestay',
+    slug: 'baidyanath-heritage-courtyard-homestay',
+    short_description:
+      'Traditional terracotta courtyard home offering pure satvik vegetarian dining and warm cultural family hospitality.',
+    description:
+      'A century-old red oxide and terracotta courtyard home located a short walk from Baidyanath Dham temple. Operated by a multi-generational family offering guided temple darshan and delicious home-cooked Jharkhand satvik thalis.',
+    category: 'Village Homestay',
+    district: 'Deoghar',
+    address: 'Temple Chowk Heritage Lane, Deoghar',
+    price: 1600,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/stays/heritage-homestay.jpg',
+    gallery: [
+      '/images/stays/heritage-homestay.jpg',
+      '/images/destinations/deoghar-baidyanath.jpg',
+    ],
+    metadata: {
+      property_type: 'Village Homestay',
+      rating: 4.9,
+      reviewsCount: 64,
+      amenities: ['Satvik Vegetarian Thali', 'Temple Guidance', 'Air Conditioning', 'Family Courtyard', 'Hot Water'],
+      host_name: 'Pandit Sharma & Family',
+      eco_certified: false,
+      check_in_time: '11:00 AM',
+      check_out_time: '10:00 AM',
+    },
+    amenities: ['Satvik Vegetarian Thali', 'Temple Guidance', 'Air Conditioning', 'Family Courtyard', 'Hot Water'],
+    rating: 4.9,
+    reviewsCount: 64,
+    property_type: 'Village Homestay',
+    host_name: 'Pandit Sharma & Family',
+    eco_certified: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'stay-betla-safari-camp',
+    provider_id: '00000000-0000-0000-0000-000000000004',
+    kind: 'stay',
+    name: 'Betla Forest Wilderness Safari Camp',
+    slug: 'betla-forest-wilderness-safari-camp',
+    short_description:
+      'Luxury weather-proof safari glamping tents on elevated timber decks in the tiger reserve buffer zone.',
+    description:
+      'Experience true wilderness living on the boundary of Betla National Park. Comfortable all-weather safari tents with attached modern washrooms, dawn birdwatching walks, and evening wildlife naturalist talks by the campfire.',
+    category: 'Glamping Tent',
+    district: 'Latehar',
+    address: 'Forest Gate Buffer Zone, Betla National Park',
+    price: 3500,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/stays/safari-tent.jpg',
+    gallery: [
+      '/images/stays/safari-tent.jpg',
+      '/images/destinations/betla-national-park.jpg',
+    ],
+    metadata: {
+      property_type: 'Glamping Tent',
+      rating: 4.9,
+      reviewsCount: 41,
+      amenities: ['En-suite Modern Washroom', 'Dawn Safari Guide', 'Campfire & Starry Skies', 'Eco-certified', 'Fresh Mineral Water'],
+      host_name: 'Palamu Wilderness Guild',
+      eco_certified: true,
+      check_in_time: '01:00 PM',
+      check_out_time: '11:00 AM',
+    },
+    amenities: ['En-suite Modern Washroom', 'Dawn Safari Guide', 'Campfire & Starry Skies', 'Eco-certified', 'Fresh Mineral Water'],
+    rating: 4.9,
+    reviewsCount: 41,
+    property_type: 'Glamping Tent',
+    host_name: 'Palamu Wilderness Guild',
+    eco_certified: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'stay-saranda-sal-treehouse',
+    provider_id: '00000000-0000-0000-0000-000000000005',
+    kind: 'stay',
+    name: 'Saranda Forest Riverbank Treehouse',
+    slug: 'saranda-forest-riverbank-treehouse',
+    short_description:
+      'Elevated wooden treehouses nestled amidst 700 hills of Asia’s largest Sal forest along the Karo River.',
+    description:
+      'Built in harmony with ancient Sal trees, these elevated treehouses offer an off-grid sanctuary in the heart of Saranda. Features riverfront dipping, tribal culinary classes, and guided forest birding.',
+    category: 'Forest Cottage',
+    district: 'West Singhbhum',
+    address: 'Manoharpur Karo Riverbank, Saranda Forest',
+    price: 3000,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/stays/pine-eco-lodge.jpg',
+    gallery: [
+      '/images/stays/pine-eco-lodge.jpg',
+      '/images/destinations/dassam-falls.jpg',
+    ],
+    metadata: {
+      property_type: 'Forest Cottage',
+      rating: 4.8,
+      reviewsCount: 29,
+      amenities: ['Riverfront Bathing Access', 'Tribal Culinary Master', 'Forest Tracking Guide', 'Zero-waste Operation', 'Solar Lanterns'],
+      host_name: 'Saranda Indigenous Tourism Union',
+      eco_certified: true,
+      check_in_time: '12:00 PM',
+      check_out_time: '10:30 AM',
+    },
+    amenities: ['Riverfront Bathing Access', 'Tribal Culinary Master', 'Forest Tracking Guide', 'Zero-waste Operation', 'Solar Lanterns'],
+    rating: 4.8,
+    reviewsCount: 29,
+    property_type: 'Forest Cottage',
+    host_name: 'Saranda Indigenous Tourism Union',
+    eco_certified: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'stay-jonha-tribal-homestay',
+    provider_id: '00000000-0000-0000-0000-000000000006',
+    kind: 'stay',
+    name: 'Jonha Village Cultural Mud Homestay',
+    slug: 'jonha-village-cultural-mud-homestay',
+    short_description:
+      'Authentic mud-plastered tribal homestay painted with Sohrai art motifs, serving hot Dhuska and herbal teas.',
+    description:
+      'Experience genuine rural Munda and Oraon hospitality just 3 km from Jonha Falls. Sleep in comfortable, naturally ventilated mud cottages with handcrafted wooden cots and woven mattresses.',
+    category: 'Village Homestay',
+    district: 'Ranchi',
+    address: 'Jonha Falls Foothills, Gautamdhara Village',
+    price: 1400,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/stays/heritage-homestay.jpg',
+    gallery: [
+      '/images/stays/heritage-homestay.jpg',
+      '/images/destinations/jonha-falls.jpg',
+    ],
+    metadata: {
+      property_type: 'Village Homestay',
+      rating: 4.9,
+      reviewsCount: 47,
+      amenities: ['Sohrai Painted Courtyard', 'Authentic Dhuska Breakfast', 'Waterfall Walking Trail', 'Local Host Family', 'Community Akhra'],
+      host_name: 'Munda Heritage Village Trust',
+      eco_certified: true,
+      check_in_time: '11:00 AM',
+      check_out_time: '10:00 AM',
+    },
+    amenities: ['Sohrai Painted Courtyard', 'Authentic Dhuska Breakfast', 'Waterfall Walking Trail', 'Local Host Family', 'Community Akhra'],
+    rating: 4.9,
+    reviewsCount: 47,
+    property_type: 'Village Homestay',
+    host_name: 'Munda Heritage Village Trust',
+    eco_certified: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];

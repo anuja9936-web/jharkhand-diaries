@@ -90,3 +90,32 @@ export async function searchDestinations(searchTerm: string): Promise<Destinatio
     return searchableText.includes(normalizedSearch);
   });
 }
+
+/**
+ * Returns up to `limit` published destinations related to the given one,
+ * preferring same-category, then same-district matches.
+ * The source destination is always excluded from results.
+ */
+export async function getRelatedDestinations(
+  excludeId: string,
+  category: DestinationCategory,
+  district: string,
+  limit = 4
+): Promise<Destination[]> {
+  const all = await fetchPublishedDestinations();
+  const others = all.filter((d) => d.id !== excludeId);
+
+  // Prefer same category
+  const sameCat = others.filter((d) => d.category === category);
+  if (sameCat.length >= limit) {
+    return sameCat.slice(0, limit);
+  }
+
+  // Supplement with same district
+  const sameDistrict = others.filter(
+    (d) => d.category !== category && normalizeSearchText(d.district) === normalizeSearchText(district)
+  );
+
+  return [...sameCat, ...sameDistrict].slice(0, limit);
+}
+

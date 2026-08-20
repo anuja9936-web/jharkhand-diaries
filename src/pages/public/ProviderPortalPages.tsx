@@ -362,16 +362,39 @@ function PublicOfferingPage({ kind }: { kind: ProviderOfferingKind }) {
     }
   }
 
+  const isStay = kind === 'stay';
+  const isExperience = kind === 'experience';
+
+  const metadata = (offering.metadata ?? {}) as Record<string, unknown>;
+  const amenities = Array.isArray(metadata.amenities)
+    ? (metadata.amenities as string[])
+    : isStay
+      ? ['Local Hospitality', 'Private Space']
+      : [];
+
+  const highlights = Array.isArray(metadata.highlights)
+    ? (metadata.highlights as string[])
+    : [];
+
   return (
     <div className="space-y-8 pb-12">
       {/* Back button link */}
-      <div>
+      <div className="flex items-center justify-between">
         <Button asChild variant="ghost" className="gap-2 px-0 text-xs font-semibold text-ink-600 hover:text-clay-700">
-          <Link to="/marketplace">
+          <Link to={isStay ? '/accommodations' : '/marketplace'}>
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Marketplace
+            <span>{isStay ? 'Back to Accommodations' : 'Back to Marketplace'}</span>
           </Link>
         </Button>
+
+        {offering.district ? (
+          <Button asChild variant="secondary" size="sm" className="gap-1.5 text-xs">
+            <Link to={`/map?district=${encodeURIComponent(offering.district)}`}>
+              <MapPin className="h-3.5 w-3.5 text-clay-700" />
+              <span>View Location on Map</span>
+            </Link>
+          </Button>
+        ) : null}
       </div>
 
       {/* Main Offering Grid: Left = Details & Gallery, Right = Request Action */}
@@ -421,7 +444,7 @@ function PublicOfferingPage({ kind }: { kind: ProviderOfferingKind }) {
                 {priceDisplay ? (
                   <div className="rounded-2xl bg-sand/60 px-4 py-2.5 text-right">
                     <span className="block text-[11px] font-medium uppercase tracking-wider text-ink-500">
-                      {kind === 'experience' ? 'Fee' : kind === 'stay' ? 'Rate' : 'Price'}
+                      {isExperience ? 'Fee' : isStay ? 'Rate' : 'Price'}
                     </span>
                     <div className="flex items-baseline gap-1">
                       <span className="text-xl font-bold text-ink-900">{priceDisplay}</span>
@@ -443,35 +466,75 @@ function PublicOfferingPage({ kind }: { kind: ProviderOfferingKind }) {
                 </p>
               </div>
 
-              {/* Metadata Highlights (Material, Duration, Amenities, etc.) */}
-              {offering.metadata && Object.keys(offering.metadata).length > 0 ? (
-                <div className="grid gap-3 pt-3 sm:grid-cols-2">
-                  {typeof offering.metadata.duration === 'string' ? (
+              {/* Stay Amenities */}
+              {isStay && amenities.length > 0 ? (
+                <div className="space-y-3 pt-3 border-t border-ink-100">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-clay-700">Amenities &amp; Features</h3>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {amenities.map((am) => (
+                      <div key={am} className="flex items-center gap-2 text-xs text-ink-700">
+                        <CheckCircle2 className="h-4 w-4 text-forest-600 shrink-0" />
+                        <span>{am}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Experience Highlights */}
+              {isExperience && highlights.length > 0 ? (
+                <div className="space-y-3 pt-3 border-t border-ink-100">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-clay-700">Experience Highlights</h3>
+                  <div className="space-y-1.5">
+                    {highlights.map((hl) => (
+                      <div key={hl} className="flex items-center gap-2 text-xs text-ink-700">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                        <span>{hl}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Metadata Highlights (Material, Duration, Specifications, etc.) */}
+              {metadata && Object.keys(metadata).length > 0 ? (
+                <div className="grid gap-3 pt-3 border-t border-ink-100 sm:grid-cols-2">
+                  {typeof metadata.duration === 'string' ? (
                     <div className="flex items-center gap-3 rounded-xl bg-sand/40 p-3 text-xs">
                       <Clock className="h-4 w-4 text-clay-600" />
                       <div>
                         <span className="font-semibold text-ink-900">Duration:</span>{' '}
-                        <span className="text-ink-700">{offering.metadata.duration}</span>
+                        <span className="text-ink-700">{metadata.duration}</span>
                       </div>
                     </div>
                   ) : null}
 
-                  {typeof offering.metadata.property_type === 'string' ? (
+                  {typeof metadata.property_type === 'string' ? (
                     <div className="flex items-center gap-3 rounded-xl bg-sand/40 p-3 text-xs">
                       <Store className="h-4 w-4 text-clay-600" />
                       <div>
                         <span className="font-semibold text-ink-900">Property Type:</span>{' '}
-                        <span className="text-ink-700">{offering.metadata.property_type}</span>
+                        <span className="text-ink-700">{metadata.property_type}</span>
                       </div>
                     </div>
                   ) : null}
 
-                  {typeof offering.metadata.material === 'string' ? (
+                  {typeof metadata.materials === 'string' || typeof metadata.material === 'string' ? (
                     <div className="flex items-center gap-3 rounded-xl bg-sand/40 p-3 text-xs">
                       <Package className="h-4 w-4 text-clay-600" />
                       <div>
-                        <span className="font-semibold text-ink-900">Craft Material:</span>{' '}
-                        <span className="text-ink-700">{offering.metadata.material}</span>
+                        <span className="font-semibold text-ink-900">Materials:</span>{' '}
+                        <span className="text-ink-700">{String(metadata.materials || metadata.material)}</span>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {typeof metadata.dimensions === 'string' ? (
+                    <div className="flex items-center gap-3 rounded-xl bg-sand/40 p-3 text-xs">
+                      <Package className="h-4 w-4 text-clay-600" />
+                      <div>
+                        <span className="font-semibold text-ink-900">Dimensions:</span>{' '}
+                        <span className="text-ink-700">{metadata.dimensions}</span>
                       </div>
                     </div>
                   ) : null}

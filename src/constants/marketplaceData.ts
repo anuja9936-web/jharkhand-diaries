@@ -1,0 +1,378 @@
+/**
+ * Curated Marketplace Products & Experiences Data for Jharkhand Diaries
+ *
+ * Distinct from Accommodations:
+ * - Products: Handcrafted art, GI Sohrai canvas, Dokra figurines, Bamboo lamps, Kuchai Tussar Silk stoles, Organic Wild Honey.
+ * - Experiences: Sohrai Masterclass, Dokra Lost-Wax Workshop, Tribal Cooking Master, Reservoir Kayaking, Elephant Sanctuary Trail.
+ *
+ * Conforms to ProviderOffering type for full compatibility with Supabase.
+ */
+
+import type { ProviderOffering } from '../types/provider';
+
+export interface MarketplaceItem extends ProviderOffering {
+  materials?: string;
+  artisan_name?: string;
+  craft_tradition?: string;
+  dimensions?: string;
+  duration?: string;
+  rating?: number;
+  reviewsCount?: number;
+  stock?: number;
+  gi_tagged?: boolean;
+}
+
+export const JHARKHAND_MARKETPLACE_PRODUCTS: MarketplaceItem[] = [
+  {
+    id: 'prod-sohrai-canvas',
+    provider_id: '00000000-0000-0000-0000-000000000010',
+    kind: 'product',
+    name: 'GI Sohrai Tree of Life Painted Canvas',
+    slug: 'gi-sohrai-tree-of-life-canvas',
+    short_description:
+      'Handmade mud & earth pigment canvas depicting the sacred Tree of Life and forest deer by master Santali women artisans.',
+    description:
+      'An authentic GI-certified Sohrai wall art interpretation created on archival handmade cotton canvas using four sacred earth clays: Dhudhi (white kaolin), Lalmati (red haematite), Charak (black manganese), and Pili mati (yellow ochre). Painted with chewed date-palm twigs according to generational motifs.',
+    category: 'Handicrafts & Art',
+    district: 'Hazaribagh',
+    address: 'Bhadal Village Artisan Guild, Hazaribagh',
+    price: 2400,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/products/sohrai-canvas.jpg',
+    gallery: [
+      '/images/products/sohrai-canvas.jpg',
+      '/images/art/sohrai-painting.jpg',
+    ],
+    metadata: {
+      craft_tradition: 'Sohrai Wall Painting',
+      artisan_name: 'Parvati Devi (National Awardee)',
+      materials: 'Natural Earth Pigments on Handmade Khadi Canvas',
+      dimensions: '24 x 36 inches',
+      gi_tagged: true,
+      stock: 6,
+      rating: 5.0,
+      reviewsCount: 19,
+    },
+    materials: 'Natural Earth Pigments on Handmade Khadi Canvas',
+    artisan_name: 'Parvati Devi (National Awardee)',
+    craft_tradition: 'Sohrai Wall Painting',
+    dimensions: '24 x 36 inches',
+    gi_tagged: true,
+    stock: 6,
+    rating: 5.0,
+    reviewsCount: 19,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'prod-dokra-musicians',
+    provider_id: '00000000-0000-0000-0000-000000000011',
+    kind: 'product',
+    name: 'Dokra Lost-Wax Bell Metal Musician Trio',
+    slug: 'dokra-lost-wax-musician-trio',
+    short_description:
+      '4,000-year-old lost-wax bronze casting of traditional Mandar, Nagara and Flute tribal musicians.',
+    description:
+      'Handcrafted using the ancient non-ferrous lost-wax metal casting technique by Malhor artisans. Beeswax cords are intricately hand-coiled over river clay cores before molten brass is poured. Each sculpture is unique as the clay mould is destroyed during retrieval.',
+    category: 'Handicrafts & Art',
+    district: 'Khunti',
+    address: 'Torpa Dhokra Metal Craft Cluster, Khunti',
+    price: 1850,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/products/dokra-figurine.jpg',
+    gallery: [
+      '/images/products/dokra-figurine.jpg',
+      '/images/art/dokra-craft.jpg',
+    ],
+    metadata: {
+      craft_tradition: 'Dhokra Lost-Wax Casting',
+      artisan_name: 'Budheshwar Karmakar',
+      materials: 'Recycled Bell Metal & Brass',
+      dimensions: '8 inches height (Set of 3)',
+      gi_tagged: false,
+      stock: 12,
+      rating: 4.9,
+      reviewsCount: 27,
+    },
+    materials: 'Recycled Bell Metal & Brass',
+    artisan_name: 'Budheshwar Karmakar',
+    craft_tradition: 'Dhokra Lost-Wax Casting',
+    dimensions: '8 inches height (Set of 3)',
+    gi_tagged: false,
+    stock: 12,
+    rating: 4.9,
+    reviewsCount: 27,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'prod-bamboo-lantern',
+    provider_id: '00000000-0000-0000-0000-000000000012',
+    kind: 'product',
+    name: 'Woven Forest Bamboo Ambient Lantern',
+    slug: 'woven-forest-bamboo-ambient-lantern',
+    short_description:
+      'Geometric woven bamboo pendant lampshade crafted from seasoned green Sal forest reeds.',
+    description:
+      'Hand-split and hand-woven by Mahli tribal craftsmen using mature green bamboo harvested from the forests of Simdega. Casts warm geometric shadow patterns and is treated with natural neem oil for insect and moisture resistance.',
+    category: 'Home Decor',
+    district: 'Simdega',
+    address: 'Kolebira Bamboo Craft Cooperative, Simdega',
+    price: 950,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/products/bamboo-lamp.jpg',
+    gallery: [
+      '/images/products/bamboo-lamp.jpg',
+      '/images/art/bamboo-craft.jpg',
+    ],
+    metadata: {
+      craft_tradition: 'Mahli Bamboo Weaving',
+      artisan_name: 'Mahli Weavers Self-Help Group',
+      materials: '100% Sustainable Green Forest Bamboo',
+      dimensions: '12 x 14 inches',
+      gi_tagged: false,
+      stock: 25,
+      rating: 4.8,
+      reviewsCount: 14,
+    },
+    materials: '100% Sustainable Green Forest Bamboo',
+    artisan_name: 'Mahli Weavers Self-Help Group',
+    craft_tradition: 'Mahli Bamboo Weaving',
+    dimensions: '12 x 14 inches',
+    gi_tagged: false,
+    stock: 25,
+    rating: 4.8,
+    reviewsCount: 14,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'prod-tussar-silk-stole',
+    provider_id: '00000000-0000-0000-0000-000000000013',
+    kind: 'product',
+    name: 'Kuchai Organic Wild Tussar Silk Stole',
+    slug: 'kuchai-organic-wild-tussar-silk-stole',
+    short_description:
+      'Pure handloom wild Tussar silk stole with natural golden sheen and tribal temple border motifs.',
+    description:
+      'Certified organic Ahimsa Tussar silk cultivated in the Sal & Asan forests of Saraikela Kharsawan. Reeled by tribal women and handwoven on pit looms with natural textured slubs and herbal dyed borders.',
+    category: 'Textiles',
+    district: 'Saraikela Kharsawan',
+    address: 'Kuchai Silk Weavers Apex Federation',
+    price: 3200,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/products/tussar-stole.jpg',
+    gallery: [
+      '/images/products/tussar-stole.jpg',
+      '/images/art/tussar-silk.jpg',
+    ],
+    metadata: {
+      craft_tradition: 'Kuchai Silk Handloom',
+      artisan_name: 'Kharsawan Handloom Guild',
+      materials: '100% Organic Wild Tussar Silk',
+      dimensions: '22 x 78 inches',
+      gi_tagged: true,
+      stock: 8,
+      rating: 5.0,
+      reviewsCount: 32,
+    },
+    materials: '100% Organic Wild Tussar Silk',
+    artisan_name: 'Kharsawan Handloom Guild',
+    craft_tradition: 'Kuchai Silk Handloom',
+    dimensions: '22 x 78 inches',
+    gi_tagged: true,
+    stock: 8,
+    rating: 5.0,
+    reviewsCount: 32,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'prod-wild-sal-honey',
+    provider_id: '00000000-0000-0000-0000-000000000014',
+    kind: 'product',
+    name: 'Raw Wild Sal Forest Blossom Honey',
+    slug: 'raw-wild-sal-forest-honey',
+    short_description:
+      'Unprocessed forest honey sustainably gathered from wild rock bees (Apis dorsata) in Saranda.',
+    description:
+      'Pure raw honey extracted by Ho tribal honey collectors from deep within the pristine Sal canopy of Saranda. Unpasteurized and unfiltered, retaining natural bee pollen, enzymes, and a distinct floral herbal aroma.',
+    category: 'Local Food & Forest Goods',
+    district: 'West Singhbhum',
+    address: 'Saranda Forest Honey Collectors Society',
+    price: 650,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/products/wild-honey.jpg',
+    gallery: [
+      '/images/products/wild-honey.jpg',
+    ],
+    metadata: {
+      craft_tradition: 'Wild Forest Foraging',
+      artisan_name: 'Ho Indigenous Collectors Cooperative',
+      materials: '100% Pure Raw Forest Honey',
+      dimensions: '500g Glass Jar',
+      gi_tagged: false,
+      stock: 40,
+      rating: 4.9,
+      reviewsCount: 45,
+    },
+    materials: '100% Pure Raw Forest Honey',
+    artisan_name: 'Ho Indigenous Collectors Cooperative',
+    craft_tradition: 'Wild Forest Foraging',
+    dimensions: '500g Glass Jar',
+    gi_tagged: false,
+    stock: 40,
+    rating: 4.9,
+    reviewsCount: 45,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
+export const JHARKHAND_MARKETPLACE_EXPERIENCES: MarketplaceItem[] = [
+  {
+    id: 'exp-sohrai-masterclass',
+    provider_id: '00000000-0000-0000-0000-000000000020',
+    kind: 'experience',
+    name: 'Sohrai & Khovar Painting Masterclass with Guild Women',
+    slug: 'sohrai-painting-masterclass',
+    short_description:
+      'Learn ancient comb-cutting and natural clay pigment techniques directly from generational mural masters on handmade tiles.',
+    description:
+      'A 3.5-hour hands-on cultural workshop in a traditional Hazaribagh village courtyard. Prepare natural earth pigments (red, black, white), learn comb-incising motifs, and paint your own souvenir terracotta tile guided by master women artists.',
+    category: 'Workshops',
+    district: 'Hazaribagh',
+    address: 'Bhadal Heritage Art Village, Hazaribagh',
+    price: 750,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/experiences/sohrai-workshop.jpg',
+    gallery: [
+      '/images/experiences/sohrai-workshop.jpg',
+      '/images/art/sohrai-painting.jpg',
+    ],
+    metadata: {
+      host_name: 'Women Artisans Guild',
+      duration: '3.5 Hours',
+      highlights: ['All clay & canvas materials provided', 'Take home painted tile', 'Herbal welcome tea & Dhuska'],
+      rating: 4.9,
+      reviewsCount: 22,
+    },
+    duration: '3.5 Hours',
+    artisan_name: 'Women Artisans Guild',
+    rating: 4.9,
+    reviewsCount: 22,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'exp-dokra-studio-tour',
+    provider_id: '00000000-0000-0000-0000-000000000021',
+    kind: 'experience',
+    name: 'Dokra Lost-Wax Bell Metal Casting Studio Workshop',
+    slug: 'dokra-lost-wax-casting-workshop',
+    short_description:
+      'Witness the 4,000-year-old lost-wax molten brass process and sculpt your own beeswax figurine.',
+    description:
+      'Step inside an active metallurgy foundry in Khunti. Learn wax thread extrusion, clay core preparation, charcoal furnace firing, and pour your own bronze miniature token.',
+    category: 'Workshops',
+    district: 'Khunti',
+    address: 'Torpa Artisan Metallurgy Studio, Khunti',
+    price: 850,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/art/dokra-craft.jpg',
+    gallery: [
+      '/images/art/dokra-craft.jpg',
+      '/images/products/dokra-figurine.jpg',
+    ],
+    metadata: {
+      host_name: 'Master Dhokra Brassmiths',
+      duration: '3 Hours',
+      highlights: ['Studio tour & demo', 'Wax model making session', 'Souvenir bronze figurine'],
+      rating: 4.8,
+      reviewsCount: 16,
+    },
+    duration: '3 Hours',
+    artisan_name: 'Master Dhokra Brassmiths',
+    rating: 4.8,
+    reviewsCount: 16,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'exp-tribal-cooking-class',
+    provider_id: '00000000-0000-0000-0000-000000000022',
+    kind: 'experience',
+    name: 'Tribal Foraging, Dheki Pounding & Cooking Masterclass',
+    slug: 'tribal-cooking-masterclass',
+    short_description:
+      'Forage wild forest herbs, pound rice flour on ancestral Dheki, and slow-cook Dhuska & Rugra in earthenware.',
+    description:
+      'An immersive 4-hour culinary journey in a village kitchen on the fringe of Saranda Forest. Gather edible greens, learn clay-pot steaming of Chilka Roti, and enjoy a sit-down meal served on Sal leaf patra.',
+    category: 'Culinary Experiences',
+    district: 'West Singhbhum',
+    address: 'Manoharpur Tribal Hearth Kitchen, West Singhbhum',
+    price: 1100,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/experiences/tribal-cooking.jpg',
+    gallery: [
+      '/images/experiences/tribal-cooking.jpg',
+      '/images/cuisine/dhuska.jpg',
+    ],
+    metadata: {
+      host_name: 'Santhali Hearth Collective',
+      duration: '4 Hours',
+      highlights: ['Full traditional 5-course meal', 'Recipe booklet', 'Organic wild ingredients'],
+      rating: 4.9,
+      reviewsCount: 31,
+    },
+    duration: '4 Hours',
+    artisan_name: 'Santhali Hearth Collective',
+    rating: 4.9,
+    reviewsCount: 31,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'exp-patratu-kayaking',
+    provider_id: '00000000-0000-0000-0000-000000000023',
+    kind: 'experience',
+    name: 'Patratu Reservoir Kayaking & Sunset Sail',
+    slug: 'patratu-kayaking-sunset-sail',
+    short_description:
+      'Glide across emerald waters framed by serpentine mountain ghats with safety instruction and sunset photos.',
+    description:
+      'Paddle along the tranquil inlets of Patratu Dam at the base of lush green valley slopes. Guided by certified water sports trainers with high-end single and tandem kayaks and life jackets included.',
+    category: 'Adventure',
+    district: 'Ramgarh',
+    address: 'Patratu Water Sports Complex, Ramgarh',
+    price: 950,
+    currency: 'INR',
+    status: 'published',
+    cover_image: '/images/experiences/lake-kayaking.jpg',
+    gallery: [
+      '/images/experiences/lake-kayaking.jpg',
+      '/images/destinations/patratu-valley.jpg',
+    ],
+    metadata: {
+      host_name: 'Jharkhand Water Sports Club',
+      duration: '2 Hours',
+      highlights: ['Certified instructor assistance', 'High-res digital photos', 'Safety life jackets'],
+      rating: 4.8,
+      reviewsCount: 39,
+    },
+    duration: '2 Hours',
+    artisan_name: 'Jharkhand Water Sports Club',
+    rating: 4.8,
+    reviewsCount: 39,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
