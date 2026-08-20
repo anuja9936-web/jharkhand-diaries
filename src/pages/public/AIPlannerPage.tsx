@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -47,42 +47,52 @@ export function AIPlannerPage() {
     travelIntensity: 'balanced',
   });
 
-  const [itinerary, setItinerary] = useState<GeneratedItinerary | null>(() =>
-    generatePersonalizedItinerary({
-      days: 3,
-      startLocation: 'Ranchi',
-      budgetTier: 'moderate',
-      travellerType: 'couple',
-      interests: ['waterfall', 'eco', 'culture'],
-      travelIntensity: 'balanced',
-    })
-  );
-
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [itinerary, setItinerary] = useState<GeneratedItinerary | null>(null);
+  const [isGenerating, setIsGenerating] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveMessage, setSaveMessage] = useState('');
+
+  // Initial load
+  useEffect(() => {
+    let alive = true;
+    async function loadInitial() {
+      setIsGenerating(true);
+      const initial = await generatePersonalizedItinerary(input);
+      if (alive) {
+        setItinerary(initial);
+        setIsGenerating(false);
+      }
+    }
+    void loadInitial();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const handleInterestToggle = (id: string) => {
     setInput((prev) => {
       const exists = prev.interests.includes(id);
       if (exists) {
-        if (prev.interests.length === 1) return prev; // keep at least 1
+        if (prev.interests.length === 1) return prev;
         return { ...prev, interests: prev.interests.filter((i) => i !== id) };
       }
       return { ...prev, interests: [...prev.interests, id] };
     });
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true);
     setSaveStatus('idle');
     setSaveMessage('');
 
-    setTimeout(() => {
-      const generated = generatePersonalizedItinerary(input);
+    try {
+      const generated = await generatePersonalizedItinerary(input);
       setItinerary(generated);
+    } catch (err) {
+      console.error('[AI Planner] generation error:', err);
+    } finally {
       setIsGenerating(false);
-    }, 450);
+    }
   };
 
   const handleSaveTrip = async () => {
@@ -144,7 +154,7 @@ export function AIPlannerPage() {
                 <span className="text-ink-300">/</span>
                 <span className="rounded-full bg-forest-100 px-2.5 py-0.5 text-[11px] font-bold text-forest-900 border border-forest-300 flex items-center gap-1">
                   <Sparkles className="h-3 w-3 text-amber-500" />
-                  AI Travel Assistant
+                  Johar AI Travel Assistant
                 </span>
               </div>
               <h1 className="font-display text-2xl sm:text-4xl font-bold text-ink-950">
@@ -328,24 +338,43 @@ export function AIPlannerPage() {
               className="w-full bg-forest-900 hover:bg-forest-800 text-white font-bold py-3 rounded-2xl shadow-md flex items-center justify-center gap-2 text-sm"
             >
               <Sparkles className="h-4 w-4 text-amber-400" />
-              <span>{isGenerating ? 'Curating Optimal Circuit...' : 'Generate AI Itinerary'}</span>
+              <span>{isGenerating ? 'Curating Optimal Circuit with AI...' : 'Generate AI Itinerary'}</span>
             </Button>
           </div>
 
           {/* ── Right Column: Generated Itinerary Showcase ───────────────────── */}
           <div className="space-y-6">
+            {isGenerating && !itinerary && (
+              <div className="bg-white rounded-3xl p-12 border border-ink-200 text-center space-y-4 shadow-sm animate-pulse">
+                <div className="h-12 w-12 rounded-full bg-amber-100 text-amber-900 mx-auto flex items-center justify-center">
+                  <Sparkles className="h-6 w-6 animate-spin" />
+                </div>
+                <h3 className="font-display text-lg font-bold text-ink-950">
+                  Johar AI is curating your personalized itinerary...
+                </h3>
+                <p className="text-xs text-ink-500 max-w-md mx-auto">
+                  Synthesizing optimal routes, verified accommodations, and scenic viewpoints across Jharkhand.
+                </p>
+              </div>
+            )}
+
             {itinerary && (
               <>
                 {/* Itinerary Summary Header Card */}
                 <div className="bg-[#FFFDF9] rounded-3xl p-6 sm:p-8 border border-ink-200/90 shadow-md space-y-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-clay-100 text-clay-900 border border-clay-300 text-xs font-bold px-3 py-1">
                         {itinerary.daysCount} Days • {itinerary.travellerType.toUpperCase()}
                       </span>
                       <span className="rounded-full bg-forest-100 text-forest-900 border border-forest-300 text-xs font-bold px-3 py-1 capitalize">
                         {itinerary.travelIntensity} Pace
                       </span>
+                      {itinerary.modelUsed && (
+                        <span className="rounded-full bg-amber-100 text-amber-950 border border-amber-300 text-[10px] font-bold px-2.5 py-0.5">
+                          ✦ {itinerary.modelUsed}
+                        </span>
+                      )}
                     </div>
 
                     <div className="text-right">

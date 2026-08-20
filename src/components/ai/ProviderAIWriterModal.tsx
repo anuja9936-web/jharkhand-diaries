@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check, Sparkles, Wand2, X } from 'lucide-react';
-import { generateProviderContent } from '../../services/ai/aiService';
+import { generateProviderContent, type ProviderContentOutput } from '../../services/ai/aiService';
 import { Button, Input } from '../ui';
 
 export function ProviderAIWriterModal({
@@ -22,21 +22,24 @@ export function ProviderAIWriterModal({
   const [isOpen, setIsOpen] = useState(false);
   const [titleInput, setTitleInput] = useState(currentTitle);
   const [highlightsInput, setHighlightsInput] = useState('');
-  const [generatedResult, setGeneratedResult] = useState<ReturnType<typeof generateProviderContent> | null>(null);
+  const [generatedResult, setGeneratedResult] = useState<ProviderContentOutput | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true);
-    setTimeout(() => {
-      const result = generateProviderContent({
+    try {
+      const result = await generateProviderContent({
         kind,
         title: titleInput || 'Authentic Local Offering',
         district,
         keyHighlights: highlightsInput || 'high quality local service',
       });
       setGeneratedResult(result);
+    } catch (err) {
+      console.error('[Provider AI Writer] Generation error:', err);
+    } finally {
       setIsGenerating(false);
-    }, 400);
+    }
   };
 
   const handleApply = () => {
@@ -126,10 +129,10 @@ export function ProviderAIWriterModal({
                   type="button"
                   onClick={handleGenerate}
                   disabled={isGenerating}
-                  className="w-full bg-forest-900 text-white font-bold text-xs py-2 rounded-xl"
+                  className="w-full bg-forest-900 text-white font-bold text-xs py-2.5 rounded-xl"
                 >
                   <Sparkles className="h-3.5 w-3.5 mr-1 text-amber-400" />
-                  <span>{isGenerating ? 'Enhancing with Tourism Knowledge...' : 'Generate Description'}</span>
+                  <span>{isGenerating ? 'Enhancing with Johar AI & Groq...' : 'Generate Description'}</span>
                 </Button>
               </div>
 
@@ -142,7 +145,7 @@ export function ProviderAIWriterModal({
                       <span>AI Generated Preview</span>
                     </span>
                     <span className="text-[10px] text-forest-700 font-semibold">
-                      Review &amp; Edit before applying
+                      {generatedResult.modelUsed ? `✦ ${generatedResult.modelUsed}` : 'Review & Edit before applying'}
                     </span>
                   </div>
 
