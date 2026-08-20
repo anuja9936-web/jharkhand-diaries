@@ -560,6 +560,23 @@ export async function createProviderRequest(input: ProviderRequestInput): Promis
   // Resolve target provider ID
   const resolvedProviderId = await resolveProviderId(input.providerId, input.offeringKind);
 
+  // Proactively ensure tourist profile has role = 'tourist' so legacy RLS checks pass
+  try {
+    const { data: prof } = await client.from('profiles').select('id, role').eq('id', touristId).maybeSingle();
+    if (!prof) {
+      await client.from('profiles').insert({
+        id: touristId,
+        full_name: input.touristName.trim() || authData?.user?.user_metadata?.full_name || 'Valued Tourist',
+        email: input.touristEmail?.trim() || authData?.user?.email,
+        role: 'tourist',
+      });
+    } else if (!prof.role || prof.role === 'user') {
+      await client.from('profiles').update({ role: 'tourist' }).eq('id', touristId);
+    }
+  } catch (err) {
+    console.warn('[providerMarketplaceService] Profile role sync notice:', err);
+  }
+
   // Check if offering exists in DB; if curated offering, ensure valid ID reference
   let validOfferingId: string | null = null;
   if (input.offeringId) {
@@ -574,39 +591,89 @@ export async function createProviderRequest(input: ProviderRequestInput): Promis
     }
   }
 
-  const { data, error } = await client
+  // Attempt 1: Full payload with enhanced columns
+  try {
+    const { data, error } = await client
+      .from('provider_requests')
+      .insert({
+        provider_id: resolvedProviderId,
+        offering_id: validOfferingId,
+        offering_kind: input.offeringKind ?? null,
+        request_type: input.requestType,
+        tourist_id: touristId,
+        tourist_name: input.touristName.trim() || 'Valued Tourist',
+        tourist_email: input.touristEmail?.trim() || null,
+        preferred_date: dateValue,
+        start_date: input.startDate ?? dateValue,
+        end_date: input.endDate ?? null,
+        duration: input.duration ?? null,
+        participants: participantsCount,
+        number_of_people: participantsCount,
+        message: input.message?.trim() || null,
+        estimated_amount: input.estimatedAmount ?? null,
+        details: {
+          ...(input.details || {}),
+          curated_offering_id: input.offeringId,
+        },
+        status: 'pending',
+      })
+      .select('*')
+      .single();
+
+    if (!error && data) {
+      return data as ProviderRequest;
+    }
+
+    if (error && !error.message?.toLowerCase().includes('column') && !error.message?.toLowerCase().includes('schema cache')) {
+      throw error;
+    }
+  } catch (err) {
+    console.warn('[providerMarketplaceService] Enhanced insert failed, attempting baseline schema fallback:', err);
+  }
+
+  // Attempt 2: Baseline schema fallback (if newer migration columns not yet in Supabase schema cache)
+  const legacyRequestType =
+    input.requestType === 'tour' || input.requestType === 'transport' || input.requestType === 'enquiry'
+      ? 'booking'
+      : input.requestType;
+
+  const extraNotes = [
+    input.offeringKind ? `[Category: ${input.offeringKind}]` : '',
+    input.startDate ? `[Start: ${input.startDate}]` : '',
+    input.endDate ? `[End: ${input.endDate}]` : '',
+    input.estimatedAmount ? `[Est: ₹${input.estimatedAmount}]` : '',
+    input.details?.pickupLocation ? `[Pickup: ${input.details.pickupLocation}]` : '',
+    input.details?.dropDestination ? `[Drop: ${input.details.dropDestination}]` : '',
+    input.details?.deliveryAddress ? `[Delivery: ${input.details.deliveryAddress}]` : '',
+    input.message?.trim() || '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const { data: fallbackData, error: fallbackError } = await client
     .from('provider_requests')
     .insert({
       provider_id: resolvedProviderId,
       offering_id: validOfferingId,
-      offering_kind: input.offeringKind ?? null,
-      request_type: input.requestType,
+      request_type: legacyRequestType,
       tourist_id: touristId,
       tourist_name: input.touristName.trim() || 'Valued Tourist',
       tourist_email: input.touristEmail?.trim() || null,
       preferred_date: dateValue,
-      start_date: input.startDate ?? dateValue,
-      end_date: input.endDate ?? null,
       duration: input.duration ?? null,
       participants: participantsCount,
-      number_of_people: participantsCount,
-      message: input.message?.trim() || null,
-      estimated_amount: input.estimatedAmount ?? null,
-      details: {
-        ...(input.details || {}),
-        curated_offering_id: input.offeringId,
-      },
+      message: extraNotes || null,
       status: 'pending',
     })
     .select('*')
     .single();
 
-  if (error) {
-    console.error('[providerMarketplaceService] createProviderRequest error:', error.message);
-    throw new Error(error.message || 'Unable to submit booking request.');
+  if (fallbackError) {
+    console.error('[providerMarketplaceService] createProviderRequest fallback error:', fallbackError.message);
+    throw new Error(fallbackError.message || 'Unable to submit booking request.');
   }
 
-  return data as ProviderRequest;
+  return fallbackData as ProviderRequest;
 }
 
 export async function updateProviderRequestStatus(

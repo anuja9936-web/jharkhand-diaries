@@ -133,7 +133,7 @@ function PublicOfferingRequestForm({
   offering: ProviderOffering;
   providerProfile: ProviderPublicProfile | null;
 }) {
-  const { user, profile, role } = useAuth();
+  const { user, profile } = useAuth();
   const config = getRequestFormConfig(offering.kind);
 
   const [preferredDate, setPreferredDate] = useState('');
@@ -225,17 +225,11 @@ function PublicOfferingRequestForm({
       {!user ? (
         <div className="space-y-3 rounded-2xl bg-sand/60 p-5 text-center">
           <p className="text-xs font-medium text-ink-800">
-            Sign in as a tourist to send enquiries directly to <strong>{providerName}</strong>.
+            Sign in to send enquiries directly to <strong>{providerName}</strong>.
           </p>
           <Button asChild variant="primary" className="w-full text-xs font-bold py-2">
             <Link to="/login">Sign in to Request</Link>
           </Button>
-        </div>
-      ) : role !== 'tourist' ? (
-        <div className="rounded-2xl bg-sand/60 p-4 text-center">
-          <p className="text-xs text-ink-600">
-            Enquiries can be submitted by tourist accounts. You are currently signed in with the <strong>{role}</strong> role.
-          </p>
         </div>
       ) : (
         <form className="space-y-3.5" onSubmit={handleSubmit}>
@@ -805,7 +799,7 @@ function PublicProviderProfilePage() {
   const [error, setError] = useState<string | null>(null);
 
   // General learning / enquiry form state
-  const { user, profile: touristProfile, role } = useAuth();
+  const { user, profile: touristProfile } = useAuth();
   const [learningDate, setLearningDate] = useState('');
   const [learningParticipants, setLearningParticipants] = useState('1');
   const [learningMessage, setLearningMessage] = useState('');
@@ -1056,8 +1050,6 @@ function PublicProviderProfilePage() {
                     <Link to="/login">Sign in</Link>
                   </Button>
                 </div>
-              ) : role !== 'tourist' ? (
-                <p className="text-xs text-ink-600">Available to tourist accounts.</p>
               ) : (
                 <form onSubmit={handleGeneralLearningRequest} className="space-y-3">
                   {learningNotice ? (

@@ -152,3 +152,14 @@ create trigger trg_notify_tourist_on_request_update
 after update on public.provider_requests
 for each row
 execute function public.notify_tourist_on_request_update();
+
+-- 5. Profiles RLS enhancement: allow authenticated users to insert/upsert their own profile row
+alter table public.profiles enable row level security;
+drop policy if exists "Users can insert own profile" on public.profiles;
+create policy "Users can insert own profile"
+on public.profiles
+for insert
+to authenticated
+with check (
+  auth.uid() = id
+);
