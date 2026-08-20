@@ -58,6 +58,26 @@ export function AIAssistantModal() {
     }
   }, [messages, isOpen]);
 
+  // Listen for open-johar-ai global custom event from map and other pages
+  useEffect(() => {
+    const handleCustomOpen = (event: Event) => {
+      const customEvent = event as CustomEvent<{ prompt?: string }>;
+      setIsOpen(true);
+      if (customEvent.detail?.prompt) {
+        const prompt = customEvent.detail.prompt;
+        setInputQuery(prompt);
+        setTimeout(() => {
+          void handleSend(prompt);
+        }, 150);
+      }
+    };
+
+    window.addEventListener('open-johar-ai', handleCustomOpen);
+    return () => {
+      window.removeEventListener('open-johar-ai', handleCustomOpen);
+    };
+  }, [messages, userGateway, language]);
+
   const handleSend = async (queryText?: string) => {
     const text = queryText || inputQuery;
     if (!text.trim() || isLoading) return;

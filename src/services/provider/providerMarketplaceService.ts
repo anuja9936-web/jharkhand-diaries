@@ -27,6 +27,35 @@ const ALL_CURATED_OFFERINGS: ProviderOffering[] = [
   ...JHARKHAND_CURATED_TRANSPORT,
 ];
 
+export async function getNearbyProviderOfferings(district?: string | null): Promise<ProviderOffering[]> {
+  const normDistrict = (district || '').trim().toLowerCase();
+  if (!normDistrict || normDistrict === 'all') {
+    return ALL_CURATED_OFFERINGS.slice(0, 8);
+  }
+
+  try {
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('provider_offerings')
+        .select('*')
+        .ilike('district', `%${normDistrict}%`)
+        .limit(8);
+
+      if (!error && data && data.length > 0) {
+        return data as ProviderOffering[];
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  return ALL_CURATED_OFFERINGS.filter(
+    (o) =>
+      Boolean(o.district && o.district.toLowerCase().includes(normDistrict)) ||
+      Boolean(normDistrict && o.district && normDistrict.includes(o.district.toLowerCase()))
+  );
+}
+
 function getClient() {
   if (!supabase) {
     throw new Error('Supabase is not configured.');
@@ -405,63 +434,108 @@ export async function getMyProviderRequests(): Promise<ProviderRequestWithOfferi
   const client = getClient();
   const userId = await getCurrentProviderUserId();
 
-  let dbRequests: ProviderRequestWithOffering[] = [];
+  // 1. Direct query strictly using provider_id = authenticated Supabase user's auth.uid()
+  const { data, error } = await client
+    .from('provider_requests')
+    .select('*')
+    .eq('provider_id', userId)
+    .order('created_at', { ascending: false });
 
-  try {
-    const { data, error } = await client
-      .from('provider_requests')
-      .select('*, offering:provider_offerings(id, kind, name, slug, cover_image, district, price)')
-      .eq('provider_id', userId)
-      .order('created_at', { ascending: false });
+  if (error) {
+    console.error('[providerMarketplaceService] getMyProviderRequests error:', error.message);
+    throw error;
+  }
 
-    if (!error && data) {
-      dbRequests = data as ProviderRequestWithOffering[];
+  const requests = (data ?? []) as ProviderRequestWithOffering[];
+
+  // 2. Collect all non-null offering IDs to enrich offering metadata
+  const offeringIds = Array.from(new Set(requests.map((r) => r.offering_id).filter(Boolean))) as string[];
+  const offeringsMap = new Map<string, Pick<ProviderOffering, 'id' | 'kind' | 'name' | 'slug' | 'cover_image' | 'district' | 'price'>>();
+
+  if (offeringIds.length > 0) {
+    try {
+      const { data: dbOfferings } = await client
+        .from('provider_offerings')
+        .select('id, kind, name, slug, cover_image, district, price')
+        .in('id', offeringIds);
+
+      if (dbOfferings) {
+        dbOfferings.forEach((o) => offeringsMap.set(o.id, o));
+      }
+    } catch (err) {
+      console.warn('[providerMarketplaceService] Error fetching related offerings:', err);
     }
+  }
 
-    // Also look for category-relevant requests for demo/test provider experience
-    const { data: allReqs } = await client
-      .from('provider_requests')
-      .select('*, offering:provider_offerings(id, kind, name, slug, cover_image, district, price)')
-      .neq('provider_id', userId)
-      .order('created_at', { ascending: false });
+  // 3. Enrich offering details from DB or curated catalogue without dropping any requests where offering_id is null
+  requests.forEach((req) => {
+    if (req.offering_id && offeringsMap.has(req.offering_id)) {
+      req.offering = offeringsMap.get(req.offering_id) || null;
+    } else {
+      const targetId =
+        req.offering_id ||
+        ((req.details as Record<string, unknown> | undefined)?.curated_offering_id as string | undefined);
 
-    if (allReqs && allReqs.length > 0) {
-      const { data: prof } = await client
-        .from('profiles')
-        .select('provider_categories')
-        .eq('id', userId)
-        .maybeSingle();
-
-      const cats = ((prof?.provider_categories ?? []) as string[]).map((c) => c.toLowerCase());
-      const demoReqs = (allReqs as ProviderRequestWithOffering[]).filter((r) => {
-        const isDemo = r.provider_id.startsWith('a1111111') ||
-          r.provider_id.startsWith('a2222222') ||
-          r.provider_id.startsWith('a3333333') ||
-          r.provider_id.startsWith('a4444444') ||
-          r.provider_id.startsWith('a5555555') ||
-          r.provider_id.startsWith('00000000');
-
-        if (!isDemo) return false;
-        const kind = r.offering_kind || (r.offering as ProviderOffering)?.kind;
-        if (!kind) return true;
-        return cats.includes(kind) || (kind === 'stay' && cats.includes('accommodation'));
-      });
-
-      const existingIds = new Set(dbRequests.map((r) => r.id));
-      for (const req of demoReqs) {
-        if (!existingIds.has(req.id)) {
-          dbRequests.push(req);
+      if (targetId) {
+        const curated = ALL_CURATED_OFFERINGS.find((o) => o.id === targetId || o.slug === targetId);
+        if (curated) {
+          req.offering = {
+            id: curated.id,
+            kind: curated.kind,
+            name: curated.name,
+            slug: curated.slug,
+            cover_image: curated.cover_image,
+            district: curated.district,
+            price: curated.price,
+          };
         }
       }
     }
-  } catch (err) {
-    console.warn('[providerMarketplaceService] getMyProviderRequests error:', err);
+  });
+
+  return requests;
+}
+
+export async function getProviderRequestById(requestId: string): Promise<ProviderRequestWithOffering | null> {
+  const client = getClient();
+  const userId = await getCurrentProviderUserId();
+
+  const { data, error } = await client
+    .from('provider_requests')
+    .select('*')
+    .eq('id', requestId)
+    .eq('provider_id', userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
   }
 
-  // Attach curated offering details if offering relation is empty
-  dbRequests.forEach((req) => {
-    if (!req.offering && req.offering_id) {
-      const curated = ALL_CURATED_OFFERINGS.find((o) => o.id === req.offering_id || o.slug === req.offering_id);
+  const req = data as ProviderRequestWithOffering;
+
+  if (req.offering_id) {
+    try {
+      const { data: off } = await client
+        .from('provider_offerings')
+        .select('id, kind, name, slug, cover_image, district, price')
+        .eq('id', req.offering_id)
+        .maybeSingle();
+
+      if (off) {
+        req.offering = off;
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  if (!req.offering) {
+    const targetId =
+      req.offering_id ||
+      ((req.details as Record<string, unknown> | undefined)?.curated_offering_id as string | undefined);
+
+    if (targetId) {
+      const curated = ALL_CURATED_OFFERINGS.find((o) => o.id === targetId || o.slug === targetId);
       if (curated) {
         req.offering = {
           id: curated.id,
@@ -474,25 +548,9 @@ export async function getMyProviderRequests(): Promise<ProviderRequestWithOfferi
         };
       }
     }
-  });
-
-  return dbRequests;
-}
-
-export async function getProviderRequestById(requestId: string): Promise<ProviderRequestWithOffering | null> {
-  const client = getClient();
-
-  const { data, error } = await client
-    .from('provider_requests')
-    .select('*, offering:provider_offerings(id, kind, name, slug, cover_image, district)')
-    .eq('id', requestId)
-    .maybeSingle();
-
-  if (error) {
-    throw error;
   }
 
-  return (data as ProviderRequestWithOffering | null) ?? null;
+  return req;
 }
 
 /**

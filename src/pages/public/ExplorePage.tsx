@@ -725,6 +725,18 @@ export function ExplorePage() {
                 {selectedDistrict !== 'all' ? ` in ${selectedDistrict}` : ''}
               </span>
             )}
+
+            <Button
+              asChild
+              size="sm"
+              className="bg-forest-900 text-white hover:bg-forest-800 text-xs font-bold px-3.5 shadow-xs"
+            >
+              <Link to={`/map${selectedDistrict !== 'all' ? `?district=${selectedDistrict}` : ''}`}>
+                <Map className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
+                <span>24-District Map</span>
+              </Link>
+            </Button>
+
             {hasActiveFilters && (
               <Button
                 type="button"

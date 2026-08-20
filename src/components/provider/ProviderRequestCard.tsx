@@ -96,7 +96,7 @@ export function ProviderRequestCard({
               <Badge variant={renderRequestStatus(request.status)}>{request.status}</Badge>
             </div>
             <h3 className="font-display font-bold text-base text-ink-950 mt-0.5">
-              {request.offering?.name || `${request.request_type.toUpperCase()} Request`}
+              {request.offering?.name || (request.offering_kind ? `${request.offering_kind.charAt(0).toUpperCase() + request.offering_kind.slice(1)} Request` : 'Tourism Request')}
             </h3>
             <p className="text-xs text-ink-600 flex items-center gap-1.5 mt-0.5">
               <User className="h-3.5 w-3.5 text-forest-700" />

@@ -1,4 +1,7 @@
 import type { Destination, DestinationCategory } from '../types/destination';
+import jharkhandGeoJsonRaw from './jharkhandDistrictsGeoJSON.json';
+
+export const JHARKHAND_DISTRICTS_GEOJSON = jharkhandGeoJsonRaw as unknown as GeoJSON.FeatureCollection;
 
 export const JHARKHAND_MAP_CONFIG = {
   CENTER: [23.65, 85.50] as [number, number],
@@ -9,7 +12,7 @@ export const JHARKHAND_MAP_CONFIG = {
     [21.80, 83.20],
     [25.40, 88.00],
   ] as [[number, number], [number, number]],
-  MAX_BOUNDS_VISCOSITY: 0.85,
+  MAX_BOUNDS_VISCOSITY: 0.9,
 };
 
 export interface DistrictInfo {

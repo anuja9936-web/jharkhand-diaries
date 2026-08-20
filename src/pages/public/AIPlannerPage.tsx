@@ -15,7 +15,7 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   generatePersonalizedItinerary,
   type GeneratedItinerary,
@@ -43,10 +43,17 @@ export function AIPlannerPage() {
   const { user } = useAuth();
   const { language, t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const initialDestination = searchParams.get('destination');
+  const initialDistrict = searchParams.get('district');
+  const defaultLocation = initialDestination
+    ? `${initialDestination}${initialDistrict ? ` (${initialDistrict})` : ''}`
+    : initialDistrict || 'Ranchi';
 
   const [input, setInput] = useState<ItineraryGenerationInput>({
     days: 3,
-    startLocation: 'Ranchi',
+    startLocation: defaultLocation,
     budgetTier: 'moderate',
     travellerType: 'couple',
     interests: ['waterfall', 'eco', 'culture'],
@@ -83,7 +90,7 @@ export function AIPlannerPage() {
     return () => {
       alive = false;
     };
-  }, [language]);
+  }, [language, defaultLocation]);
 
   const handleInterestToggle = (id: string) => {
     setInput((prev) => {

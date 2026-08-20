@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import L from 'leaflet';
 import {
   Circle,
+  GeoJSON,
   MapContainer,
   Marker,
-  Polygon,
   TileLayer,
-  Tooltip,
   useMap,
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -14,7 +13,7 @@ import { DestinationMarker } from './DestinationMarker';
 import {
   CATEGORY_THEMES,
   JHARKHAND_DISTRICTS_DATA,
-  JHARKHAND_MAP_CONFIG,
+  JHARKHAND_DISTRICTS_GEOJSON,
 } from '../../constants/jharkhandDistrictsGeo';
 import type { Destination } from '../../types/destination';
 import { Layers, RotateCcw } from 'lucide-react';
@@ -45,20 +44,25 @@ export function TourismMap({
   const [showDistricts, setShowDistricts] = useState(true);
   const [showLegend, setShowLegend] = useState(true);
 
+  // Calculate actual Jharkhand geographic bounds directly from GeoJSON
+  const jharkhandBounds = useMemo(() => {
+    return L.geoJSON(JHARKHAND_DISTRICTS_GEOJSON).getBounds();
+  }, []);
+
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-ink-200/80 shadow-md">
       <MapContainer
-        center={JHARKHAND_MAP_CONFIG.CENTER}
-        zoom={JHARKHAND_MAP_CONFIG.DEFAULT_ZOOM}
-        minZoom={JHARKHAND_MAP_CONFIG.MIN_ZOOM}
-        maxZoom={JHARKHAND_MAP_CONFIG.MAX_ZOOM}
-        maxBounds={JHARKHAND_MAP_CONFIG.BOUNDS}
-        maxBoundsViscosity={JHARKHAND_MAP_CONFIG.MAX_BOUNDS_VISCOSITY}
+        bounds={jharkhandBounds}
+        boundsOptions={{ padding: [20, 20] }}
+        minZoom={7}
+        maxZoom={16}
+        maxBounds={jharkhandBounds.pad(0.2)}
+        maxBoundsViscosity={0.95}
         scrollWheelZoom={true}
         className="z-0 h-full w-full"
         style={{ height: '100%', minHeight: '520px', width: '100%' }}
       >
-        {/* Crisp, light tourism tile layer */}
+        {/* Crisp, modern OpenStreetMap tourism tile layer */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | Jharkhand Tourism GIS'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -67,20 +71,24 @@ export function TourismMap({
         <MapVisibilityController isVisible={isVisible} />
 
         <MapFocusController
+          jharkhandBounds={jharkhandBounds}
           selectedDestination={selectedDestination}
           selectedDistrict={selectedDistrict}
           userLocation={userLocation}
         />
 
-        {/* 1. 24 District Boundaries & Polygons */}
+        {/* 1. Authentic 24 District GeoJSON Layer */}
         {showDistricts && (
-          <DistrictsLayer
+          <DistrictsGeoLayer
             selectedDistrict={selectedDistrict}
             onSelectDistrict={onSelectDistrict}
           />
         )}
 
-        {/* 2. Tourist Destination Markers */}
+        {/* 2. District Centroid Name Labels (Text-only, no square containers) */}
+        {showDistricts && <DistrictCentroidLabels />}
+
+        {/* 3. Tourist Destination Markers (Always rendered above district polygons) */}
         {destinations.map((destination) => (
           <DestinationMarker
             key={destination.id}
@@ -90,13 +98,15 @@ export function TourismMap({
           />
         ))}
 
-        {/* 3. User Geolocation Marker */}
+        {/* 4. User Geolocation Marker */}
         {userLocation && <UserLocationMarker userLocation={userLocation} />}
 
-        {/* 4. Top-Right Map Controls (Inside MapContainer to access Leaflet map context) */}
+        {/* 5. Top-Right Map Controls */}
         <MapOverlayControls
+          jharkhandBounds={jharkhandBounds}
           showDistricts={showDistricts}
           setShowDistricts={setShowDistricts}
+          onResetDistrict={() => onSelectDistrict && onSelectDistrict('all')}
         />
       </MapContainer>
 
@@ -105,7 +115,7 @@ export function TourismMap({
         <div className="rounded-2xl border border-ink-200/90 bg-[#FFFDF9]/95 p-3 shadow-xl backdrop-blur-md max-w-xs sm:max-w-md">
           <div className="flex items-center justify-between gap-3 mb-2 pb-1.5 border-b border-ink-200/70">
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-clay-700">
-              Jharkhand Tourism GIS Legend
+              Jharkhand Tourism Legend
             </span>
             <button
               type="button"
@@ -135,7 +145,7 @@ export function TourismMap({
   );
 }
 
-function DistrictsLayer({
+function DistrictsGeoLayer({
   selectedDistrict,
   onSelectDistrict,
 }: {
@@ -143,42 +153,99 @@ function DistrictsLayer({
   onSelectDistrict?: (district: string) => void;
 }) {
   return (
+    <GeoJSON
+      key={selectedDistrict || 'all'}
+      data={JHARKHAND_DISTRICTS_GEOJSON}
+      style={(feature) => {
+        const districtName = (feature?.properties?.name || '').toLowerCase();
+        const isSelected = Boolean(
+          selectedDistrict &&
+          selectedDistrict !== 'all' &&
+          districtName === selectedDistrict.toLowerCase()
+        );
+
+        return {
+          color: isSelected ? '#b45309' : '#047857',
+          weight: isSelected ? 3.5 : 1.4,
+          fillColor: isSelected ? '#d97706' : '#10b981',
+          fillOpacity: isSelected ? 0.32 : 0.05,
+        };
+      }}
+      onEachFeature={(feature, layer) => {
+        const districtName = feature.properties?.name || 'District';
+        const districtMeta = Object.values(JHARKHAND_DISTRICTS_DATA).find(
+          (d) => d.name.toLowerCase() === districtName.toLowerCase()
+        );
+
+        layer.bindTooltip(
+          `<div style="font-family: sans-serif; text-align: center; padding: 2px;">
+            <strong style="color: #0f172a; font-size: 12px;">${districtName} District</strong>
+            ${districtMeta ? `<div style="color: #9a3412; font-size: 10px; font-weight: 600;">HQ: ${districtMeta.hq}</div>` : ''}
+          </div>`,
+          { sticky: true, direction: 'center', className: 'district-tooltip-label' }
+        );
+
+        layer.on({
+          click: () => {
+            if (onSelectDistrict) {
+              onSelectDistrict(districtName);
+            }
+          },
+          mouseover: (e) => {
+            const l = e.target;
+            l.setStyle({
+              weight: 2.5,
+              color: '#d97706',
+              fillOpacity: 0.2,
+            });
+          },
+          mouseout: (e) => {
+            const districtLower = districtName.toLowerCase();
+            const isSelected = Boolean(
+              selectedDistrict &&
+              selectedDistrict !== 'all' &&
+              districtLower === selectedDistrict.toLowerCase()
+            );
+            e.target.setStyle({
+              color: isSelected ? '#b45309' : '#047857',
+              weight: isSelected ? 3.5 : 1.4,
+              fillColor: isSelected ? '#d97706' : '#10b981',
+              fillOpacity: isSelected ? 0.32 : 0.05,
+            });
+          },
+        });
+      }}
+    />
+  );
+}
+
+function DistrictCentroidLabels() {
+  return (
     <>
       {Object.values(JHARKHAND_DISTRICTS_DATA).map((district) => {
-        const isSelected =
-          selectedDistrict?.toLowerCase() === district.name.toLowerCase();
+        const textIcon = L.divIcon({
+          className: 'district-centroid-label',
+          html: `<div style="
+            font-family: sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            color: #334155;
+            text-shadow: 0 0 4px #ffffff, 0 0 4px #ffffff;
+            pointer-events: none;
+            white-space: nowrap;
+            text-align: center;
+          ">${district.name}</div>`,
+          iconSize: [80, 16],
+          iconAnchor: [40, 8],
+        });
 
         return (
-          <Polygon
-            key={district.name}
-            positions={district.polygon}
-            pathOptions={{
-              color: isSelected ? '#b45309' : '#334155',
-              weight: isSelected ? 3 : 1.2,
-              dashArray: isSelected ? undefined : '4, 4',
-              fillColor: isSelected ? '#f59e0b' : '#059669',
-              fillOpacity: isSelected ? 0.18 : 0.03,
-            }}
-            eventHandlers={{
-              click: () => {
-                if (onSelectDistrict) {
-                  onSelectDistrict(district.name);
-                }
-              },
-            }}
-          >
-            <Tooltip
-              sticky
-              direction="center"
-              className="district-tooltip-label"
-              opacity={0.95}
-            >
-              <div className="text-center font-sans text-xs">
-                <p className="font-bold text-ink-900">{district.name} District</p>
-                <p className="text-[10px] text-ink-600">{district.description.slice(0, 45)}…</p>
-              </div>
-            </Tooltip>
-          </Polygon>
+          <Marker
+            key={`label-${district.name}`}
+            position={district.center}
+            icon={textIcon}
+            interactive={false}
+          />
         );
       })}
     </>
@@ -200,15 +267,25 @@ function MapVisibilityController({ isVisible }: { isVisible: boolean }) {
 }
 
 function MapFocusController({
+  jharkhandBounds,
   selectedDestination,
   selectedDistrict,
   userLocation,
 }: {
+  jharkhandBounds: L.LatLngBounds;
   selectedDestination: Destination | null;
   selectedDistrict?: string | null;
   userLocation: UserLocation | null;
 }) {
   const map = useMap();
+
+  // Initial fitBounds on mount
+  useEffect(() => {
+    map.fitBounds(jharkhandBounds, {
+      padding: [20, 20],
+      animate: false,
+    });
+  }, [map, jharkhandBounds]);
 
   // Focus on specific selected destination
   useEffect(() => {
@@ -227,21 +304,30 @@ function MapFocusController({
 
   // Focus on district when district changes and no destination is actively focused
   useEffect(() => {
-    if (!selectedDistrict || selectedDistrict === 'all' || selectedDestination) {
+    if (selectedDestination) return;
+
+    if (!selectedDistrict || selectedDistrict === 'all') {
+      map.flyToBounds(jharkhandBounds, {
+        padding: [20, 20],
+        animate: true,
+        duration: 1,
+      });
       return;
     }
 
-    const districtData = Object.values(JHARKHAND_DISTRICTS_DATA).find(
-      (d) => d.name.toLowerCase() === selectedDistrict.toLowerCase()
+    const feature = JHARKHAND_DISTRICTS_GEOJSON.features.find(
+      (f) => (f.properties?.name || '').toLowerCase() === selectedDistrict.toLowerCase()
     );
 
-    if (districtData) {
-      map.flyTo(districtData.center, districtData.zoom, {
+    if (feature) {
+      const bounds = L.geoJSON(feature).getBounds();
+      map.flyToBounds(bounds, {
+        padding: [30, 30],
         animate: true,
         duration: 1.2,
       });
     }
-  }, [map, selectedDistrict, selectedDestination]);
+  }, [map, selectedDistrict, selectedDestination, jharkhandBounds]);
 
   // Geolocation focus
   useEffect(() => {
@@ -256,16 +342,24 @@ function MapFocusController({
 }
 
 function MapOverlayControls({
+  jharkhandBounds,
   showDistricts,
   setShowDistricts,
+  onResetDistrict,
 }: {
+  jharkhandBounds: L.LatLngBounds;
   showDistricts: boolean;
   setShowDistricts: React.Dispatch<React.SetStateAction<boolean>>;
+  onResetDistrict?: () => void;
 }) {
   const map = useMap();
 
   const handleReset = () => {
-    map.flyTo(JHARKHAND_MAP_CONFIG.CENTER, JHARKHAND_MAP_CONFIG.DEFAULT_ZOOM, {
+    if (onResetDistrict) {
+      onResetDistrict();
+    }
+    map.flyToBounds(jharkhandBounds, {
+      padding: [20, 20],
       animate: true,
       duration: 1,
     });

@@ -174,31 +174,63 @@ export function DestinationMarker({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 pt-2 border-t border-ink-200/60">
-              <Button
-                asChild
-                size="sm"
-                className="flex-1 bg-forest-900 text-white hover:bg-forest-800 text-xs font-bold py-1.5 h-auto justify-center"
-              >
-                <Link to={`/destinations/${destination.slug}`}>
-                  <span>View Details</span>
-                  <ExternalLink className="ml-1 h-3 w-3" />
-                </Link>
-              </Button>
-
-              {onAddToTrip && (
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-ink-200/60">
+              <div className="flex items-center gap-1.5">
                 <Button
-                  type="button"
+                  asChild
+                  size="sm"
+                  className="flex-1 bg-forest-900 text-white hover:bg-forest-800 text-xs font-bold py-1.5 h-auto justify-center"
+                >
+                  <Link to={`/destinations/${destination.slug}`}>
+                    <span>View Details</span>
+                    <ExternalLink className="ml-1 h-3 w-3" />
+                  </Link>
+                </Button>
+
+                <Button
+                  asChild
                   size="sm"
                   variant="secondary"
-                  onClick={() => onAddToTrip(destination)}
-                  className="text-xs font-bold py-1.5 h-auto border border-ink-300 hover:bg-sand"
-                  title="Add to Itinerary"
+                  className="flex-1 bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100 text-xs font-bold py-1.5 h-auto justify-center"
                 >
-                  <Plus className="h-3.5 w-3.5 mr-0.5 text-clay-700" />
-                  <span>Trip</span>
+                  <Link to={`/plan-trip?destination=${encodeURIComponent(destination.name)}&district=${encodeURIComponent(destination.district)}`}>
+                    <Plus className="mr-1 h-3 w-3 text-amber-700" />
+                    <span>Plan Trip</span>
+                  </Link>
                 </Button>
-              )}
+
+                {onAddToTrip && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => onAddToTrip(destination)}
+                    className="text-xs font-bold py-1.5 h-auto border border-ink-300 hover:bg-sand"
+                    title="Add to Itinerary"
+                  >
+                    <span>+</span>
+                  </Button>
+                )}
+              </div>
+
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent('open-johar-ai', {
+                      detail: {
+                        prompt: `I am exploring ${destination.name} in ${destination.district} district, Jharkhand. What are the top things to do, best time to visit, and recommended nearby stays and guides?`,
+                      },
+                    })
+                  );
+                }}
+                className="w-full text-xs font-bold py-1 h-auto bg-sand/60 hover:bg-sand border border-ink-200/80 text-clay-800 justify-center"
+              >
+                <span className="mr-1 text-xs">✦</span>
+                <span>Ask Johar AI</span>
+              </Button>
             </div>
           </div>
         </div>
