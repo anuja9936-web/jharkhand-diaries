@@ -4,31 +4,44 @@ import type {
   DestinationCategory,
 } from '../../types/destination';
 import { DESTINATION_CATEGORY_LABELS } from '../../constants/destinations';
+import { VERIFIED_JHARKHAND_DESTINATIONS } from '../../constants/jharkhandDistrictsGeo';
 import { normalizeSearchText } from '../../lib/utils';
 
 function getSupabaseClient() {
-  if (!supabase) {
-    throw new Error('Supabase is not configured.');
-  }
-
   return supabase;
 }
 
 async function fetchPublishedDestinations(): Promise<Destination[]> {
   const client = getSupabaseClient();
-  const { data, error } = await client
-    .from('destinations')
-    .select('*')
-    .eq('status', 'published')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('[SUPABASE] fetchPublishedDestinations error', error);
-    throw error;
+  if (!client) {
+    return VERIFIED_JHARKHAND_DESTINATIONS;
   }
 
-  console.log('[SUPABASE] fetchPublishedDestinations count', data?.length ?? 0);
-  return (data ?? []) as Destination[];
+  try {
+    const { data, error } = await client
+      .from('destinations')
+      .select('*')
+      .eq('status', 'published')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('[SUPABASE] fetchPublishedDestinations error, using fallback data', error);
+      return VERIFIED_JHARKHAND_DESTINATIONS;
+    }
+
+    if (!data || data.length === 0) {
+      return VERIFIED_JHARKHAND_DESTINATIONS;
+    }
+
+    // Merge Supabase destinations with verified dataset ensuring no duplicate slugs
+    const existingSlugs = new Set((data as Destination[]).map((d) => d.slug));
+    const supplemental = VERIFIED_JHARKHAND_DESTINATIONS.filter((d) => !existingSlugs.has(d.slug));
+
+    return [...(data as Destination[]), ...supplemental];
+  } catch (err) {
+    console.warn('[SUPABASE] error fetching destinations, falling back', err);
+    return VERIFIED_JHARKHAND_DESTINATIONS;
+  }
 }
 
 export async function getPublishedDestinations(): Promise<Destination[]> {
@@ -36,22 +49,26 @@ export async function getPublishedDestinations(): Promise<Destination[]> {
 }
 
 export async function getDestinationBySlug(slug: string): Promise<Destination | null> {
-  console.log('[SUPABASE] getDestinationBySlug request', slug);
   const client = getSupabaseClient();
-  const { data, error } = await client
-    .from('destinations')
-    .select('*')
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .maybeSingle();
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('destinations')
+        .select('*')
+        .eq('slug', slug)
+        .eq('status', 'published')
+        .maybeSingle();
 
-  if (error) {
-    console.error('[SUPABASE] getDestinationBySlug error', error);
-    throw error;
+      if (!error && data) {
+        return data as Destination;
+      }
+    } catch (err) {
+      console.warn('[SUPABASE] getDestinationBySlug fetch error', err);
+    }
   }
 
-  console.log('[SUPABASE] getDestinationBySlug result', data);
-  return (data as Destination | null) ?? null;
+  const fallback = VERIFIED_JHARKHAND_DESTINATIONS.find((d) => d.slug === slug || d.id === slug);
+  return fallback ?? null;
 }
 
 export async function getDestinationsByCategory(category: DestinationCategory): Promise<Destination[]> {

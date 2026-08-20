@@ -407,6 +407,12 @@ export function DestinationDetailPage() {
               Back to Explore
             </Link>
           </Button>
+          <Button asChild variant="secondary">
+            <Link to={`/map?destination=${destination.slug}`} className="inline-flex items-center gap-1.5 text-xs font-semibold">
+              <Map className="h-3.5 w-3.5 text-clay-700" />
+              Interactive Map
+            </Link>
+          </Button>
           <Badge variant="accent">{getDestinationCategoryLabel(destination.category)}</Badge>
           {destination.eco_zone && (
             <Badge variant="success" className="inline-flex items-center gap-1">

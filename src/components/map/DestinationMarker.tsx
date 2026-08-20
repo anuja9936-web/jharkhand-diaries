@@ -2,52 +2,62 @@ import { useEffect, useMemo, useRef } from 'react';
 import { divIcon, type DivIcon, type Marker as LeafletMarker } from 'leaflet';
 import { Marker, Popup } from 'react-leaflet';
 import { Link } from 'react-router-dom';
-import { DEFAULT_DESTINATION_IMAGE, getDestinationCategoryLabel } from '../../constants/destinations';
+import {
+  CalendarDays,
+  Coins,
+  ExternalLink,
+  Leaf,
+  MapPin,
+  Plus,
+} from 'lucide-react';
+import { DEFAULT_DESTINATION_IMAGE } from '../../constants/destinations';
+import { CATEGORY_THEMES } from '../../constants/jharkhandDistrictsGeo';
 import type { Destination } from '../../types/destination';
-import { Badge, Button, Card } from '../ui';
 import { formatIndianCurrency } from '../../lib/utils';
-import { Leaf } from 'lucide-react';
+import { Button } from '../ui';
 
-const MARKER_COLORS: Record<Destination['category'], string> = {
-  waterfall: '#ef7b3a',
-  heritage: '#56463a',
-  tribal_culture: '#b84516',
-  eco: '#337246',
-  craft: '#943411',
-  adventure: '#d75d1c',
-  religious: '#74290d',
-  wildlife: '#20472f',
-};
-
-function createDestinationIcon(category: Destination['category'], isSelected: boolean): DivIcon {
-  const color = MARKER_COLORS[category];
+function createThemedMarkerIcon(
+  category: Destination['category'],
+  isSelected: boolean
+): DivIcon {
+  const theme = CATEGORY_THEMES[category] ?? CATEGORY_THEMES.waterfall;
+  const size = isSelected ? 42 : 32;
+  const pulseHtml = isSelected
+    ? `<div class="absolute -inset-2 rounded-full bg-amber-400/40 animate-ping pointer-events-none"></div>`
+    : '';
 
   return divIcon({
-    className: '',
+    className: 'custom-tourism-marker',
     html: `
-      <div style="
-        width:${isSelected ? 36 : 28}px;
-        height:${isSelected ? 36 : 28}px;
-        border-radius:9999px;
-        background:${color};
-        border:3px solid rgba(255,255,255,0.95);
-        box-shadow:0 10px 24px rgba(0,0,0,0.25);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        transform:${isSelected ? 'scale(1.08)' : 'scale(1)'};
-      ">
+      <div class="relative flex items-center justify-center cursor-pointer transition-transform duration-300 ${
+        isSelected ? 'scale-110 z-50' : 'hover:scale-110'
+      }">
+        ${pulseHtml}
         <div style="
-          width:${isSelected ? 10 : 8}px;
-          height:${isSelected ? 10 : 8}px;
-          border-radius:9999px;
-          background:rgba(255,255,255,0.95);
+          width:${size}px;
+          height:${size}px;
+          background-color:${theme.color};
+          border:3px solid #ffffff;
+          box-shadow:0 8px 20px rgba(0,0,0,0.35);
+        " class="rounded-full flex items-center justify-center text-white shadow-lg transition-all duration-300">
+          <div class="flex items-center justify-center pointer-events-none">
+            ${theme.svgIcon}
+          </div>
+        </div>
+        <div style="
+          position:absolute;
+          bottom:-5px;
+          width:0;
+          height:0;
+          border-left:5px solid transparent;
+          border-right:5px solid transparent;
+          border-top:6px solid ${theme.color};
         "></div>
       </div>
     `,
-    iconSize: [isSelected ? 36 : 28, isSelected ? 36 : 28],
-    iconAnchor: [isSelected ? 18 : 14, isSelected ? 18 : 14],
-    popupAnchor: [0, isSelected ? -16 : -12],
+    iconSize: [size, size + 6],
+    iconAnchor: [size / 2, size + 6],
+    popupAnchor: [0, -(size + 8)],
   });
 }
 
@@ -58,22 +68,27 @@ function hasValidCoordinate(value: number | null): value is number {
 export function DestinationMarker({
   destination,
   isSelected,
+  onAddToTrip,
 }: {
   destination: Destination;
   isSelected: boolean;
+  onAddToTrip?: (destination: Destination) => void;
 }) {
   const markerRef = useRef<LeafletMarker | null>(null);
   const latitude = Number(destination.latitude);
   const longitude = Number(destination.longitude);
   const coverImage = destination.cover_image || DEFAULT_DESTINATION_IMAGE;
-  const icon = useMemo(() => createDestinationIcon(destination.category, isSelected), [destination.category, isSelected]);
+  const theme = CATEGORY_THEMES[destination.category] ?? CATEGORY_THEMES.waterfall;
+
+  const icon = useMemo(
+    () => createThemedMarkerIcon(destination.category, isSelected),
+    [destination.category, isSelected]
+  );
 
   useEffect(() => {
-    if (!isSelected) {
-      return;
+    if (isSelected && markerRef.current) {
+      markerRef.current.openPopup();
     }
-
-    markerRef.current?.openPopup();
   }, [isSelected]);
 
   if (!hasValidCoordinate(latitude) || !hasValidCoordinate(longitude)) {
@@ -85,62 +100,108 @@ export function DestinationMarker({
       ref={markerRef}
       position={[latitude, longitude]}
       icon={icon}
-      zIndexOffset={isSelected ? 1000 : 0}
+      zIndexOffset={isSelected ? 1000 : 100}
       riseOnHover
-      eventHandlers={{
-        click: () => {
-          markerRef.current?.openPopup();
-        },
-      }}
     >
       <Popup
-        closeButton={false}
-        autoPan
-        eventHandlers={{
-          add: () => {
-            console.log('[POPUP] mounted', destination.slug);
-          },
-        }}
+        closeButton={true}
+        autoPan={true}
+        className="tourism-destination-popup"
+        maxWidth={320}
       >
-        <Card className="w-72 border-0 bg-white p-0 shadow-none">
-          <div className="overflow-hidden rounded-2xl">
-            <img src={coverImage} alt={destination.name} className="h-28 w-full object-cover" />
+        <div className="w-72 overflow-hidden rounded-2xl bg-[#FFFDF9] text-ink-900 shadow-xl border border-ink-200/90 p-0 font-sans">
+          {/* Thumbnail Cover with Category Pill */}
+          <div className="relative h-32 w-full overflow-hidden bg-sand">
+            <img
+              src={coverImage}
+              alt={destination.name}
+              className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  'https://placehold.co/600x400/png?text=' + encodeURIComponent(destination.name);
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent pointer-events-none" />
+
+            {/* Badges on Image */}
+            <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5 z-10">
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border shadow-xs ${theme.bgBadge}`}>
+                {theme.label}
+              </span>
+              {destination.eco_zone && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-forest-900/90 text-forest-200 border border-forest-500/40 px-2 py-0.5 text-[10px] font-bold shadow-xs">
+                  <Leaf className="h-3 w-3 text-forest-300" />
+                  Eco Zone
+                </span>
+              )}
+            </div>
+
+            {/* Title on bottom of image */}
+            <div className="absolute bottom-2 left-2.5 right-2.5 z-10">
+              <h3 className="font-display text-base font-bold text-white leading-tight drop-shadow-md truncate">
+                {destination.name}
+              </h3>
+              <p className="flex items-center gap-1 text-[11px] text-sand/90 font-medium drop-shadow-sm">
+                <MapPin className="h-3 w-3 text-amber-400 shrink-0" />
+                <span>{destination.district} District</span>
+              </p>
+            </div>
           </div>
-          <div className="space-y-3 p-2 pt-3">
-            <div className="space-y-1">
-              <h3 className="text-base font-semibold text-ink-900">{destination.name}</h3>
-              <p className="text-xs text-ink-500">{destination.district}</p>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="accent">{getDestinationCategoryLabel(destination.category)}</Badge>
-                {destination.eco_zone ? (
-                  <Badge variant="success" className="inline-flex items-center gap-1">
-                    <Leaf className="h-3 w-3" />
-                    Eco zone
-                  </Badge>
-                ) : null}
+
+          {/* Body Content */}
+          <div className="p-3.5 space-y-3">
+            <p className="text-xs text-ink-700 leading-relaxed line-clamp-2">
+              {destination.short_description ||
+                destination.description ||
+                'Explore this iconic tourist attraction in Jharkhand.'}
+            </p>
+
+            {/* Metadata Badges: Best Time & Fee */}
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-ink-200/60 text-[11px]">
+              <div className="flex items-center gap-1.5 text-ink-600">
+                <CalendarDays className="h-3.5 w-3.5 text-clay-700 shrink-0" />
+                <span className="truncate">{destination.best_time || 'October to March'}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-ink-600">
+                <Coins className="h-3.5 w-3.5 text-forest-700 shrink-0" />
+                <span className="font-semibold text-ink-900">
+                  {destination.entry_fee && destination.entry_fee > 0
+                    ? formatIndianCurrency(destination.entry_fee)
+                    : 'Free Entry'}
+                </span>
               </div>
             </div>
-            <p className="text-sm leading-6 text-ink-600">
-              {destination.short_description || destination.description || 'Destination details coming soon.'}
-            </p>
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-clay-700">
-                {formatIndianCurrency(destination.entry_fee)}
-              </p>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pt-2 border-t border-ink-200/60">
               <Button
-                type="button"
-                variant="secondary"
                 asChild
+                size="sm"
+                className="flex-1 bg-forest-900 text-white hover:bg-forest-800 text-xs font-bold py-1.5 h-auto justify-center"
               >
-                <Link
-                  to={`/destinations/${destination.slug}`}
-                >
-                  View Destination
+                <Link to={`/destinations/${destination.slug}`}>
+                  <span>View Details</span>
+                  <ExternalLink className="ml-1 h-3 w-3" />
                 </Link>
               </Button>
+
+              {onAddToTrip && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onAddToTrip(destination)}
+                  className="text-xs font-bold py-1.5 h-auto border border-ink-300 hover:bg-sand"
+                  title="Add to Itinerary"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-0.5 text-clay-700" />
+                  <span>Trip</span>
+                </Button>
+              )}
             </div>
           </div>
-        </Card>
+        </div>
       </Popup>
     </Marker>
   );
