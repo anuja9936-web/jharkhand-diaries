@@ -1,4 +1,4 @@
-import { BarChart3, Compass, Globe2, Home, MapPin, ShieldCheck, Store, Users } from 'lucide-react';
+import { BarChart3, Compass, Globe2, Home, MapPin, MessageSquare, ShieldCheck, Store, Users } from 'lucide-react';
 import { USER_ROLES } from '../constants/roles';
 import type { UserRole } from '../types/common';
 
@@ -11,10 +11,18 @@ export interface NavItem {
 
 export const publicNavItems: NavItem[] = [
   { label: 'Home', href: '/', icon: Home },
+  { label: 'Gallery', href: '/gallery', icon: Globe2 },
   { label: 'Explore', href: '/explore', icon: Compass },
+  { label: 'Map', href: '/map', icon: MapPin },
+  { label: 'Experiences', href: '/experiences', icon: Compass },
+  { label: 'Accommodations', href: '/accommodations', icon: Store },
   { label: 'Marketplace', href: '/marketplace', icon: Store },
-  { label: 'Destinations', href: '/destinations', icon: MapPin },
-  { label: 'About', href: '/about', icon: Globe2 },
+  { label: 'Feedback', href: '/feedback', icon: MessageSquare },
+];
+
+export const partnerNavItems = [
+  { label: 'Service Provider', href: '/provider', role: 'provider' as const },
+  { label: 'Government', href: '/admin', role: 'admin' as const },
 ];
 
 export const touristNavItems: NavItem[] = [

@@ -51,8 +51,9 @@ module.exports = {
           'radial-gradient(circle at 20% 20%, rgba(239, 123, 58, 0.25) 0, transparent 24%), radial-gradient(circle at 80% 0%, rgba(51, 114, 70, 0.22) 0, transparent 28%), linear-gradient(135deg, rgba(255,255,255,0.8), rgba(244,235,223,0.95))',
       },
       fontFamily: {
-        display: ['Georgia', 'Times New Roman', 'serif'],
-        body: ['Trebuchet MS', 'Segoe UI', 'sans-serif'],
+        display: ['"Playfair Display"', 'Georgia', 'Times New Roman', 'serif'],
+        body: ['"Plus Jakarta Sans"', 'Trebuchet MS', 'Segoe UI', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Trebuchet MS', 'Segoe UI', 'sans-serif'],
       },
     },
   },

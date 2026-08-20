@@ -12,6 +12,7 @@ import {
 import { cn } from '../../lib/utils';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface BaseProps {
   className?: string;
@@ -20,20 +21,33 @@ interface BaseProps {
 export function Button({
   className,
   variant = 'primary',
+  size = 'md',
   asChild = false,
   children,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; asChild?: boolean; children?: ReactNode }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant;
+  size?: ButtonSize;
+  asChild?: boolean;
+  children?: ReactNode;
+}) {
   const variants: Record<Variant, string> = {
-    primary: 'bg-ink-900 text-white hover:bg-ink-800 shadow-lg shadow-ink-900/10',
-    secondary: 'bg-white text-ink-900 border border-ink-200 hover:bg-ink-50',
-    ghost: 'bg-transparent text-ink-900 hover:bg-ink-100',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
+    primary: 'bg-ink-900 text-white hover:bg-ink-800 shadow-lg shadow-ink-900/10 active:scale-[0.98]',
+    secondary: 'bg-white text-ink-900 border border-ink-200 hover:bg-ink-50 active:scale-[0.98]',
+    ghost: 'bg-transparent text-ink-900 hover:bg-ink-100 active:scale-[0.98]',
+    danger: 'bg-red-600 text-white hover:bg-red-700 active:scale-[0.98]',
+  };
+
+  const sizes: Record<ButtonSize, string> = {
+    sm: 'px-3 py-1.5 text-xs font-semibold rounded-lg',
+    md: 'px-4 py-2 text-sm font-semibold rounded-xl',
+    lg: 'px-6 py-3 text-base font-bold rounded-2xl',
   };
 
   const classes = cn(
-    'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-clay-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
+    'inline-flex items-center justify-center gap-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-clay-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60',
     variants[variant],
+    sizes[size],
     className
   );
 

@@ -12,8 +12,15 @@ import {
   UnauthorizedPage,
 } from '../pages/public/PublicPages';
 import { ExplorePage } from '../pages/public/ExplorePage';
+import { FeedbackPage } from '../pages/public/FeedbackPage';
 import { MarketplacePage } from '../pages/public/MarketplacePage';
 import { DestinationDetailPage } from '../pages/public/DestinationDetailPage';
+import { GalleryPage } from '../pages/public/GalleryPage';
+import { MapDiscoveryPage } from '../pages/public/MapDiscoveryPage';
+import { ExperiencesPage } from '../pages/public/ExperiencesPage';
+import { AccommodationsPage } from '../pages/public/AccommodationsPage';
+import { BlogsPage } from '../pages/public/BlogsPage';
+import { EventsPage } from '../pages/public/EventsPage';
 import { DashboardRedirectPage } from '../pages/auth/DashboardRedirectPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { RegisterPage } from '../pages/auth/RegisterPage';
@@ -69,17 +76,31 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
+        {/* Main Tourist Discovery Routes */}
         <Route index element={<HomePage />} />
+        <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/explore" element={<ExplorePage />} />
+        <Route path="/map" element={<MapDiscoveryPage />} />
+        <Route path="/experiences" element={<ExperiencesPage />} />
+        <Route path="/accommodations" element={<AccommodationsPage />} />
         <Route path="/marketplace" element={<MarketplacePage />} />
+        <Route path="/blogs" element={<BlogsPage />} />
+        <Route path="/events" element={<EventsPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/feedback" element={<FeedbackPage />} />
+
+        {/* Destination Detail Routes */}
         <Route path="/destinations" element={<Navigate to="/explore" replace />} />
         <Route path="/destinations/:slug" element={<DestinationDetailPage />} />
         <Route path="/vendors" element={<Navigate to="/marketplace" replace />} />
-        <Route path="/about" element={<AboutPage />} />
+
+        {/* Public Provider & Offering Showcase */}
         <Route path="/providers/:providerId" element={<PublicProviderProfilePage />} />
         <Route path="/products/:offeringId" element={<PublicProductPage />} />
         <Route path="/experiences/:offeringId" element={<PublicExperiencePage />} />
         <Route path="/stays/:offeringId" element={<PublicStayPage />} />
+
+        {/* Auth Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/sign-in" element={<Navigate to="/login" replace />} />
@@ -88,6 +109,7 @@ export function AppRoutes() {
         <Route path="/access-denied" element={<UnauthorizedPage />} />
       </Route>
 
+      {/* Authenticated Tourist Routes */}
       <Route
         path="/tourist"
         element={
@@ -110,6 +132,7 @@ export function AppRoutes() {
         <Route path="ar" element={<TouristARPage />} />
       </Route>
 
+      {/* Generic Dashboard Redirect */}
       <Route
         path="/dashboard"
         element={
@@ -119,6 +142,7 @@ export function AppRoutes() {
         }
       />
 
+      {/* Authenticated Service Provider Routes */}
       <Route
         path="/provider"
         element={
@@ -157,6 +181,7 @@ export function AppRoutes() {
 
       <Route path="/vendor" element={<Navigate to="/provider" replace />} />
 
+      {/* Authenticated Government / Admin Routes */}
       <Route
         path="/admin"
         element={
