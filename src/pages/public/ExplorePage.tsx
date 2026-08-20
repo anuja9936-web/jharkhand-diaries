@@ -661,10 +661,10 @@ export function ExplorePage() {
                   type="button"
                   onClick={() => setActiveCategory(opt.value)}
                   className={[
-                    'flex items-center gap-2 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-clay-400',
+                    'flex items-center gap-2 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-forest-400',
                     isActive
-                      ? 'bg-ink-950 text-white shadow-md'
-                      : 'bg-white text-ink-700 border border-ink-200 hover:border-clay-400 hover:text-ink-900',
+                      ? 'bg-forest-900 text-white font-bold shadow-sm'
+                      : 'bg-[#FFFDF9] text-ink-800 border border-ink-200 hover:bg-sand hover:text-ink-950',
                   ].join(' ')}
                 >
                   <span>{opt.emoji}</span>
@@ -677,7 +677,7 @@ export function ExplorePage() {
         </div>
 
         {/* ── Filter Bar (District + Eco Zone + Result Counters) ──────────── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-ink-200/80 bg-white p-4 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-ink-200/90 bg-[#FFFDF9] p-4 shadow-xs">
           <div className="flex flex-wrap items-center gap-3">
             {/* District Filter Dropdown */}
             <div className="flex items-center gap-2">

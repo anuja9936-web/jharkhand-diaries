@@ -1,12 +1,33 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { ArrowRight, BarChart3, CheckCircle2, Compass, MapPin, Store, Users } from 'lucide-react';
+import {
+  Building2,
+  CalendarCheck,
+  Car,
+  CheckCircle2,
+  Clock,
+  Compass,
+  ExternalLink,
+  MapPin,
+  Package,
+  Plus,
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Store,
+  Users,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge, Button, Card, Input, Textarea } from '../../components/ui';
-import { EmptyState, ErrorState, LoadingState, PageHeader, PlaceholderPage, StatCard } from '../../components/common/StateBlocks';
-import { ProviderListingCard } from '../../components/provider/ProviderListingCard';
+import { EmptyState, ErrorState, LoadingState, PageHeader, StatCard } from '../../components/common/StateBlocks';
 import { ProviderReviewCard } from '../../components/provider/ProviderReviewCard';
 import { ProviderRequestCard } from '../../components/provider/ProviderRequestCard';
-import { getProviderCategoryLabel } from '../../constants/provider';
+import { ProviderOnboardingCard } from '../../components/provider/ProviderOnboardingCard';
+import { ProviderCapabilitySelector } from '../../components/provider/ProviderCapabilitySelector';
+import {
+  getProviderCategoryLabel,
+  VERIFICATION_STATUS_LABELS,
+} from '../../constants/provider';
 import { useAuth } from '../../hooks/useAuth';
 import {
   getMyProviderOfferings,
@@ -17,143 +38,85 @@ import { getMyProviderListings } from '../../services/provider/providerService';
 import { getReviewsForDestinationIds } from '../../services/reviews/reviewService';
 import { updateProfile } from '../../services/users/profileService';
 import type { Destination } from '../../types/destination';
-import type { ProviderOffering } from '../../types/provider';
+import type { ProviderCapability, ProviderOffering, ProviderOfferingKind } from '../../types/provider';
 import type { ReviewWithDestination } from '../../services/reviews/reviewService';
 
-const providerBullets = {
-  profile: [
-    'Keep your provider identity, contact details, and avatar current.',
-    'These profile details are shared with your managed listings and dashboard shell.',
-  ],
-  verification: [
-    'Document review and verification workflows are ready for a future phase.',
-    'This route stays in place for trust and compliance tools later.',
-  ],
-  payments: [
-    'Settlement, payouts, and UPI tools will be added later.',
-    'No payment logic is active in this release.',
-  ],
-  analytics: [
-    'Performance charts will appear once analytics data is available.',
-    'For now, listings and review counts give a quick operational snapshot.',
-  ],
-};
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
 
-function getAverageRating(reviews: ReviewWithDestination[]) {
-  if (reviews.length === 0) {
-    return null;
-  }
-
+function getAverageRating(reviews: ReviewWithDestination[]): number | null {
+  if (reviews.length === 0) return null;
   return Number((reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1));
 }
 
-function getProfileCompletion(profile: ReturnType<typeof useAuth>['profile']) {
-  const fields = [
-    profile?.business_name,
-    profile?.owner_name,
-    profile?.description,
-    profile?.phone,
-    profile?.avatar_url,
-    profile?.cover_image_url,
-    profile?.address,
-    profile?.district,
-    profile?.state,
-    profile?.website_url,
-    profile?.provider_categories?.length ? 'filled' : null,
+function getProfileCompletion(profile: ReturnType<typeof useAuth>['profile']): {
+  percentage: number;
+  missingFields: string[];
+} {
+  const checkList: { label: string; filled: boolean }[] = [
+    { label: 'Business / Display Name', filled: Boolean(profile?.business_name || profile?.full_name) },
+    { label: 'Owner / Contact Name', filled: Boolean(profile?.owner_name) },
+    { label: 'Business Description', filled: Boolean(profile?.description) },
+    { label: 'Contact Phone', filled: Boolean(profile?.phone) },
+    { label: 'District / Region', filled: Boolean(profile?.district) },
+    { label: 'Operating Address', filled: Boolean(profile?.address) },
+    { label: 'Profile / Avatar Image', filled: Boolean(profile?.avatar_url) },
+    { label: 'Service Capabilities', filled: Boolean(profile?.provider_categories && profile.provider_categories.length > 0) },
+    { label: 'Identity Verification', filled: Boolean(profile?.verification_status && profile.verification_status !== 'unverified') },
   ];
-  const filled = fields.filter((value) => Boolean(value && String(value).trim())).length;
-  return Math.round((filled / fields.length) * 100);
+
+  const filledCount = checkList.filter((item) => item.filled).length;
+  const percentage = Math.round((filledCount / checkList.length) * 100);
+  const missingFields = checkList.filter((item) => !item.filled).map((item) => item.label);
+
+  return { percentage, missingFields };
 }
 
-function RecentListingCard({
-  listing,
-  reviewCount,
-  averageRating,
-  onDelete,
-  deleting,
-}: {
-  listing: Destination;
-  reviewCount: number;
-  averageRating: number | null;
-  onDelete: (listing: Destination) => void;
-  deleting: boolean;
-}) {
-  return (
-    <ProviderListingCard
-      listing={listing}
-      reviewCount={reviewCount}
-      averageRating={averageRating}
-      onDelete={onDelete}
-      deleting={deleting}
-    />
-  );
-}
+// ---------------------------------------------------------------------------
+// Provider Dashboard Home
+// ---------------------------------------------------------------------------
 
 export function ProviderDashboardPage() {
   const { profile, user } = useAuth();
-  const [listings, setListings] = useState<Destination[]>([]);
   const [offerings, setOfferings] = useState<ProviderOffering[]>([]);
   const [requests, setRequests] = useState<ProviderRequestWithOffering[]>([]);
   const [reviews, setReviews] = useState<ReviewWithDestination[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [warnings, setWarnings] = useState<string[]>([]);
-  const [deletingListingId, setDeletingListingId] = useState<string | null>(null);
+  const [showCapabilityPicker, setShowCapabilityPicker] = useState(false);
 
   const loadDashboard = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [listingResult, productResult, experienceResult, stayResult, requestResult] = await Promise.allSettled([
+
+      const [listingsRes, offeringsRes, requestsRes] = await Promise.allSettled([
         getMyProviderListings(),
-        getMyProviderOfferings('product'),
-        getMyProviderOfferings('experience'),
-        getMyProviderOfferings('stay'),
+        getMyProviderOfferings(),
         getMyProviderRequests(),
       ]);
 
-      const nextWarnings: string[] = [];
+      const loadedListings = listingsRes.status === 'fulfilled' ? listingsRes.value : [];
+      const loadedOfferings = offeringsRes.status === 'fulfilled' ? offeringsRes.value : [];
+      const loadedRequests = requestsRes.status === 'fulfilled' ? requestsRes.value : [];
 
-      if (listingResult.status === 'fulfilled') {
-        setListings(listingResult.value);
-      } else {
-        setListings([]);
-        nextWarnings.push('Your destination listings could not be loaded right now.');
-      }
+      setOfferings(loadedOfferings);
+      setRequests(loadedRequests);
 
-      const flattenedOfferings = [
-        productResult.status === 'fulfilled' ? productResult.value : [],
-        experienceResult.status === 'fulfilled' ? experienceResult.value : [],
-        stayResult.status === 'fulfilled' ? stayResult.value : [],
-      ].flat();
-      setOfferings(flattenedOfferings);
-
-      if (requestResult.status === 'fulfilled') {
-        setRequests(requestResult.value);
-      } else {
-        setRequests([]);
-        nextWarnings.push('Learning, booking, or purchase requests are not available yet.');
-      }
-
-      if (listingResult.status === 'fulfilled' && listingResult.value.length > 0) {
+      if (loadedListings.length > 0) {
         try {
-          const reviewRows = await getReviewsForDestinationIds(listingResult.value.map((listing) => listing.id));
+          const reviewRows = await getReviewsForDestinationIds(loadedListings.map((l) => l.id));
           setReviews(reviewRows);
         } catch {
           setReviews([]);
-          nextWarnings.push('Traveller reviews could not be loaded right now.');
         }
-      } else {
-        setReviews([]);
       }
-
-      if (productResult.status === 'rejected' || experienceResult.status === 'rejected' || stayResult.status === 'rejected') {
-        nextWarnings.push('Product, experience, or stay management is not available in the current database yet.');
-      }
-
-      setWarnings(nextWarnings);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Unable to load provider dashboard.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load dashboard data.');
     } finally {
       setLoading(false);
     }
@@ -163,75 +126,50 @@ export function ProviderDashboardPage() {
     void loadDashboard();
   }, []);
 
-  const totalsByKind = useMemo(
-    () => ({
-      product: offerings.filter((item) => item.kind === 'product').length,
-      experience: offerings.filter((item) => item.kind === 'experience').length,
-      stay: offerings.filter((item) => item.kind === 'stay').length,
-    }),
-    [offerings]
+  const rawCategories = profile?.provider_categories ?? [];
+  const capabilities = useMemo(
+    () => rawCategories.map((c) => c.toLowerCase()) as ProviderCapability[],
+    [rawCategories]
   );
+  const hasCapability = (cap: ProviderCapability) => capabilities.includes(cap);
 
-  const totalListings = listings.length;
-  const publishedListings = listings.filter((listing) => listing.status === 'published').length;
-  const totalReviews = reviews.length;
+  // Group offerings by capability kind
+  const totalsByKind = useMemo(() => {
+    const counts: Record<ProviderOfferingKind, number> = {
+      stay: 0,
+      product: 0,
+      tour: 0,
+      experience: 0,
+      transport: 0,
+    };
+    offerings.forEach((o) => {
+      if (counts[o.kind] !== undefined) {
+        counts[o.kind]++;
+      }
+    });
+    return counts;
+  }, [offerings]);
+
+  const pendingRequests = requests.filter((r) => r.status === 'pending');
+  const acceptedRequests = requests.filter((r) => r.status === 'accepted');
   const averageRating = getAverageRating(reviews);
-  const profileCompletion = getProfileCompletion(profile);
-  const totalRequests = requests.length;
-  const pendingRequests = requests.filter((request) => request.status === 'pending').length;
-  const providerCategories = profile?.provider_categories?.length
-    ? profile.provider_categories.map((category) => getProviderCategoryLabel(category))
-    : ['Destination owner', 'guide', 'artisan', 'stay host'];
-  const categorySummary = providerCategories.join(' • ');
+  const { percentage: profileCompletion, missingFields } = getProfileCompletion(profile);
 
-  const reviewStatsByListing = useMemo(() => {
-    return listings.reduce(
-      (acc, listing) => {
-        const listingReviews = reviews.filter((review) => review.destination_id === listing.id);
-        acc.counts[listing.id] = listingReviews.length;
-        acc.averages[listing.id] =
-          listingReviews.length > 0
-            ? Number((listingReviews.reduce((sum, review) => sum + review.rating, 0) / listingReviews.length).toFixed(1))
-            : null;
-        return acc;
-      },
-      { counts: {} as Record<string, number>, averages: {} as Record<string, number | null> }
-    );
-  }, [listings, reviews]);
+  const verificationStatus = profile?.verification_status ?? 'unverified';
+  const verificationConfig = VERIFICATION_STATUS_LABELS[verificationStatus] ?? VERIFICATION_STATUS_LABELS.unverified;
 
-  const handleDeleteListing = async (listing: Destination) => {
-    const confirmed = window.confirm(`Delete ${listing.name}? This will remove the listing from your dashboard.`);
-
-    if (!confirmed) {
-      return;
-    }
-
-    setDeletingListingId(listing.id);
-
-    try {
-      const { deleteProviderListing } = await import('../../services/provider/providerService');
-      await deleteProviderListing(listing.id);
-      await loadDashboard();
-    } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : 'Unable to delete listing.');
-    } finally {
-      setDeletingListingId(null);
-    }
-  };
-
-  const topListings = listings.slice(0, 3);
-  const recentReviews = reviews.slice(0, 4);
-  const recentRequests = requests.slice(0, 3);
+  const providerName =
+    profile?.business_name || profile?.full_name || user?.email?.split('@')[0] || 'Partner';
 
   if (loading) {
     return (
       <div className="space-y-6">
         <PageHeader
-          eyebrow="Provider workspace"
+          eyebrow="Jharkhand Diaries"
           title="Loading your provider dashboard"
-          description="Pulling your listings, requests, products, and reviews together..."
+          description="Pulling your listings, requests, orders, and traveller feedback together..."
         />
-        <LoadingState label="Loading provider data..." />
+        <LoadingState label="Preparing your workspace..." />
       </div>
     );
   }
@@ -240,324 +178,400 @@ export function ProviderDashboardPage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          eyebrow="Provider workspace"
-          title="Service provider dashboard"
-          description="Manage your tourism business, experiences, products, and stays."
-          actions={
-            <Button asChild>
-              <Link to="/provider/listings/new">Add New Listing</Link>
-            </Button>
-          }
+          eyebrow="Jharkhand Diaries"
+          title="Provider Workspace"
+          description="Manage your tourism services, crafts, stays, and guided experiences."
         />
-        <ErrorState title="Unable to load provider dashboard" message={error} />
+        <ErrorState title="Unable to load dashboard" message={error} />
       </div>
     );
   }
 
-  const providerName = profile?.business_name ?? profile?.full_name ?? user?.email ?? 'Provider';
+  // If newly registered or existing provider with no categories, display dedicated onboarding screen
+  if (capabilities.length === 0) {
+    return (
+      <div className="space-y-6 py-4">
+        <ProviderOnboardingCard onComplete={loadDashboard} canDismiss={false} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {warnings.length ? (
-        <Card className="border-amber-200 bg-amber-50 text-amber-950">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">Workspace notice</p>
-            <p className="text-sm leading-6">
-              Some provider portal sections are waiting on the remote database schema. Listings remain available, and the rest of the dashboard stays usable.
-            </p>
-            <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-amber-900">
-              {warnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-          </div>
-        </Card>
-      ) : null}
-
-      <Card className="overflow-hidden rounded-3xl border border-ink-200 bg-white/95 p-5 shadow-sm">
-        <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
-          <div className="space-y-4">
+      {/* Main Header / Welcome Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-ink-200 bg-white/95 p-6 shadow-sm sm:p-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="accent">Service provider portal</Badge>
-              <Badge variant="neutral">Profile synced</Badge>
+              <span className="text-xs font-semibold uppercase tracking-[0.24em] text-clay-700">
+                Local Provider Ecosystem
+              </span>
+              {verificationStatus === 'verified' ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Verified Provider
+                </span>
+              ) : verificationStatus === 'under_review' ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                  <Clock className="h-3.5 w-3.5" />
+                  Verification Pending
+                </span>
+              ) : (
+                <Link
+                  to="/provider/verification"
+                  className="inline-flex items-center gap-1 rounded-full bg-sand px-2.5 py-0.5 text-xs font-semibold text-ink-700 hover:bg-clay-100 hover:text-clay-800 transition-colors"
+                >
+                  <ShieldAlert className="h-3.5 w-3.5 text-clay-700" />
+                  Verification Required
+                </Link>
+              )}
             </div>
-            <div className="space-y-2">
-              <h1 className="font-display text-3xl font-bold tracking-tight text-ink-900 md:text-4xl">Welcome back, {providerName}</h1>
-              <p className="max-w-2xl text-sm leading-6 text-ink-600 md:text-base">
-                Manage your tourism services, products, stays, and experiences from one organised workspace.
-              </p>
-              <p className="text-sm font-medium text-clay-700">{categorySummary}</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {providerCategories.slice(0, 4).map((category) => (
-                <Badge key={category} variant="accent">
-                  {category}
-                </Badge>
+
+            <h1 className="font-display text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl lg:text-4xl">
+              {getGreeting()}, {providerName}
+            </h1>
+            <p className="text-sm leading-relaxed text-ink-600 sm:text-base">
+              Manage your services and connect with travellers across Jharkhand.
+            </p>
+
+            {/* Active Capabilities Pills */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-2">
+              {capabilities.map((cap) => (
+                <span
+                  key={cap}
+                  className="inline-flex items-center gap-1 rounded-xl bg-sand/80 px-2.5 py-1 text-xs font-semibold text-clay-800"
+                >
+                  {getProviderCategoryLabel(cap)}
+                </span>
               ))}
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button asChild>
-                <Link to="/provider/products/new">Add Product</Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link to="/provider/experiences/new">Add Experience</Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link to="/provider/stays/new">Add Stay</Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link to="/provider/profile">Edit Profile</Link>
-              </Button>
-              <Button asChild variant="secondary">
-                <Link to={'/providers/' + (user?.id ?? profile?.id ?? '')}>View Public Profile</Link>
-              </Button>
+              <button
+                type="button"
+                onClick={() => setShowCapabilityPicker(!showCapabilityPicker)}
+                className="text-xs text-clay-700 underline font-medium hover:text-clay-900 ml-1.5"
+              >
+                {showCapabilityPicker ? 'Hide services setup' : 'Edit services'}
+              </button>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            <div className="rounded-3xl border border-ink-200 bg-sand/70 p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-clay-700">Profile completion</p>
-              <p className="mt-3 text-3xl font-bold text-ink-900">{profileCompletion}%</p>
-              <p className="mt-1 text-sm text-ink-600">Keep your business profile ready for travellers.</p>
+          {/* Direct Public Link */}
+          {user?.id && (
+            <div className="flex flex-col items-end gap-2">
+              <Button variant="secondary" size="sm" asChild>
+                <Link to={`/providers/${user.id}`} target="_blank">
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5 text-clay-700" />
+                  View Public Profile
+                </Link>
+              </Button>
+              <span className="text-[11px] text-ink-400">Public traveller storefront</span>
             </div>
-            <div className="rounded-3xl border border-ink-200 bg-sand/70 p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-clay-700">Requests awaiting action</p>
-              <p className="mt-3 text-3xl font-bold text-ink-900">{pendingRequests}</p>
-              <p className="mt-1 text-sm text-ink-600">Learning, booking, and purchase enquiries.</p>
-            </div>
-            <div className="rounded-3xl border border-ink-200 bg-sand/70 p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-clay-700">Reviews</p>
-              <p className="mt-3 text-3xl font-bold text-ink-900">{averageRating != null ? averageRating.toFixed(1) : '0.0'}</p>
-              <p className="mt-1 text-sm text-ink-600">
-                {totalReviews > 0 ? `${totalReviews} traveller reviews` : 'Traveller reviews will appear here.'}
-              </p>
-            </div>
+          )}
+        </div>
+
+        {/* Collapsible Capability Customizer */}
+        {showCapabilityPicker && (
+          <div className="mt-6 pt-6 border-t border-ink-100">
+            <ProviderOnboardingCard
+              onComplete={() => {
+                setShowCapabilityPicker(false);
+                void loadDashboard();
+              }}
+              canDismiss={true}
+            />
           </div>
+        )}
+      </div>
+
+      {/* Dynamic Type-Specific Quick Actions (Strictly for active capabilities) */}
+      <Card className="space-y-4 p-5 sm:p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">
+              Quick Actions
+            </span>
+            <h2 className="font-display text-lg font-bold text-ink-900">
+              What would you like to do today?
+            </h2>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2.5">
+          {/* Accommodation actions */}
+          {hasCapability('accommodation') && (
+            <>
+              <Button asChild size="sm">
+                <Link to="/provider/stays/new">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Add Accommodation
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/provider/stays">Manage Stays</Link>
+              </Button>
+            </>
+          )}
+
+          {/* Artisan actions */}
+          {hasCapability('artisan') && (
+            <>
+              <Button asChild size="sm">
+                <Link to="/provider/products/new">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Add Product
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/provider/products">Manage Inventory</Link>
+              </Button>
+            </>
+          )}
+
+          {/* Guide actions */}
+          {hasCapability('guide') && (
+            <>
+              <Button asChild size="sm">
+                <Link to="/provider/tours/new">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Add Tour Service
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/provider/tours">Manage Tours</Link>
+              </Button>
+            </>
+          )}
+
+          {/* Adventure actions */}
+          {hasCapability('adventure') && (
+            <>
+              <Button asChild size="sm">
+                <Link to="/provider/experiences/new">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Add Experience
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/provider/experiences">Manage Experiences</Link>
+              </Button>
+            </>
+          )}
+
+          {/* Transport actions */}
+          {hasCapability('transport') && (
+            <>
+              <Button asChild size="sm">
+                <Link to="/provider/transport/new">
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Add Vehicle
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/provider/transport">Manage Fleet</Link>
+              </Button>
+            </>
+          )}
+
+          <Button asChild variant="secondary" size="sm">
+            <Link to="/provider/requests">View All Requests</Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm">
+            <Link to="/provider/reviews">Traveller Reviews</Link>
+          </Button>
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <StatCard label="Total listings" value={String(totalListings)} detail="Destination records under your account" icon={Store} />
-        <StatCard label="Published listings" value={String(publishedListings)} detail="Visible on the public tourism site" icon={CheckCircle2} />
-        <StatCard label="Products" value={String(totalsByKind.product)} detail="Artisan goods and local products" icon={Compass} />
-        <StatCard label="Experiences" value={String(totalsByKind.experience)} detail="Workshops, tours, and activities" icon={MapPin} />
-        <StatCard label="Stays" value={String(totalsByKind.stay)} detail="Hotels, homestays, and guesthouses" icon={Users} />
-        <StatCard label="Requests" value={String(totalRequests)} detail="Learning, booking, and purchase enquiries" icon={BarChart3} />
+      {/* Dynamic Type-Specific Metrics Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Capability Specific Metric 1 */}
+        {hasCapability('accommodation') && (
+          <StatCard
+            label="Active Accommodations"
+            value={String(totalsByKind.stay)}
+            detail="Homestays, lodges, and campsites"
+            icon={Building2}
+          />
+        )}
+
+        {hasCapability('artisan') && (
+          <StatCard
+            label="Handicraft Products"
+            value={String(totalsByKind.product)}
+            detail="Crafts, art, and silk products"
+            icon={Package}
+          />
+        )}
+
+        {hasCapability('guide') && (
+          <StatCard
+            label="Guided Tour Itineraries"
+            value={String(totalsByKind.tour)}
+            detail="Heritage and cultural walks"
+            icon={Compass}
+          />
+        )}
+
+        {hasCapability('adventure') && (
+          <StatCard
+            label="Adventure Experiences"
+            value={String(totalsByKind.experience)}
+            detail="Treks, workshops, and sports"
+            icon={Sparkles}
+          />
+        )}
+
+        {hasCapability('transport') && (
+          <StatCard
+            label="Active Vehicles"
+            value={String(totalsByKind.transport)}
+            detail="Cabs, SUVs, and rentals"
+            icon={Car}
+          />
+        )}
+
+        {/* Global Operational Metrics */}
+        <StatCard
+          label="Pending Requests"
+          value={String(pendingRequests.length)}
+          detail={pendingRequests.length > 0 ? 'Awaiting your confirmation' : 'No pending requests'}
+          icon={CalendarCheck}
+        />
+
+        <StatCard
+          label="Upcoming Bookings"
+          value={String(acceptedRequests.length)}
+          detail="Confirmed tourist itineraries"
+          icon={CheckCircle2}
+        />
+
+        <StatCard
+          label="Average Rating"
+          value={averageRating ? `${averageRating} ★` : '—'}
+          detail={reviews.length > 0 ? `From ${reviews.length} traveller reviews` : 'No reviews yet'}
+          icon={Star}
+        />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Main Content Grid: Recent Requests & Profile Health */}
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        {/* Recent Requests Section */}
+        <Card className="space-y-4 p-5 sm:p-6">
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay-700">Quick actions</p>
-              <h2 className="mt-1 text-2xl font-semibold text-ink-900">Build your provider portal</h2>
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">
+                Inquiries & Bookings
+              </span>
+              <h2 className="font-display text-lg font-bold text-ink-900">
+                Recent Tourist Requests
+              </h2>
             </div>
-            <Button asChild>
-              <Link to="/provider/listings/new" className="inline-flex items-center gap-2">
-                <Compass className="h-4 w-4" />
-                Add Destination
-              </Link>
-            </Button>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <Button asChild variant="secondary">
-              <Link to="/provider/products/new">Add Product</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link to="/provider/experiences/new">Add Experience</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link to="/provider/stays/new">Add Stay</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link to="/provider/requests">View Requests</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link to="/provider/reviews">View Reviews</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link to="/provider/profile">Edit Profile</Link>
-            </Button>
-          </div>
-        </Card>
-
-        <Card className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay-700">Profile snapshot</p>
-              <h2 className="mt-1 text-2xl font-semibold text-ink-900">Identity at a glance</h2>
-            </div>
-            <Badge variant="accent">{profileCompletion}% complete</Badge>
-          </div>
-
-          <div className="grid gap-3">
-            <div className="rounded-2xl bg-sand px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">Business name</p>
-              <p className="mt-1 text-sm font-medium text-ink-900">{profile?.business_name ?? profile?.full_name ?? 'Not set yet'}</p>
-            </div>
-            <div className="rounded-2xl bg-sand px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">Owner</p>
-              <p className="mt-1 text-sm font-medium text-ink-900">{profile?.owner_name ?? profile?.full_name ?? 'Not set yet'}</p>
-            </div>
-            <div className="rounded-2xl bg-sand px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">District</p>
-              <p className="mt-1 text-sm font-medium text-ink-900">{profile?.district ?? 'Not set yet'}</p>
-            </div>
-            <div className="rounded-2xl bg-sand px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">Categories</p>
-              <p className="mt-1 text-sm font-medium text-ink-900">
-                {profile?.provider_categories?.length ? profile.provider_categories.map((category) => getProviderCategoryLabel(category)).join(', ') : 'Not set yet'}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <Card className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay-700">Destination listings</p>
-              <h2 className="mt-1 text-2xl font-semibold text-ink-900">Your managed destinations</h2>
-            </div>
-            {listings.length > 3 ? (
-              <Button asChild variant="secondary">
-                <Link to="/provider/listings">View all listings</Link>
+            {requests.length > 0 && (
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/provider/requests">View all ({requests.length})</Link>
               </Button>
-            ) : null}
+            )}
           </div>
 
-          {topListings.length === 0 ? (
+          {requests.length === 0 ? (
             <EmptyState
-              title="No destinations yet"
-              message="Add your first destination listing to start building your public tourism presence."
-              actionLabel="Add New Listing"
-              actionHref="/provider/listings/new"
+              title="No requests yet"
+              message="When tourists discover your offerings and book stays, tours, or craft orders, they will appear here."
+              actionLabel="View all services"
+              actionHref="/provider/stays"
             />
           ) : (
-            <div className="space-y-4">
-              {topListings.map((listing) => (
-                <RecentListingCard
-                  key={listing.id}
-                  listing={listing}
-                  reviewCount={reviewStatsByListing.counts[listing.id] ?? 0}
-                  averageRating={reviewStatsByListing.averages[listing.id] ?? null}
-                  onDelete={handleDeleteListing}
-                  deleting={deletingListingId === listing.id}
-                />
+            <div className="space-y-3">
+              {requests.slice(0, 4).map((req) => (
+                <ProviderRequestCard key={req.id} request={req} />
               ))}
             </div>
           )}
         </Card>
 
+        {/* Profile Completion & Verification Checklist */}
         <div className="space-y-6">
-          <Card className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
+          <Card className="space-y-4 p-5 sm:p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay-700">Business offerings</p>
-                <h2 className="mt-1 text-2xl font-semibold text-ink-900">Products, experiences, and stays</h2>
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">
+                  Trust & Profile Health
+                </span>
+                <h2 className="font-display text-lg font-bold text-ink-900">
+                  Profile Completion
+                </h2>
               </div>
-              <Badge variant="accent">{offerings.length} active</Badge>
+              <span className="font-display text-2xl font-bold text-clay-700">
+                {profileCompletion}%
+              </span>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl bg-sand px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">Products</p>
-                <p className="mt-2 text-3xl font-bold text-ink-900">{totalsByKind.product}</p>
-                <Button asChild variant="secondary" className="mt-4 w-full">
-                  <Link to="/provider/products">Manage</Link>
-                </Button>
-              </div>
-              <div className="rounded-2xl bg-sand px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">Experiences</p>
-                <p className="mt-2 text-3xl font-bold text-ink-900">{totalsByKind.experience}</p>
-                <Button asChild variant="secondary" className="mt-4 w-full">
-                  <Link to="/provider/experiences">Manage</Link>
-                </Button>
-              </div>
-              <div className="rounded-2xl bg-sand px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">Stays</p>
-                <p className="mt-2 text-3xl font-bold text-ink-900">{totalsByKind.stay}</p>
-                <Button asChild variant="secondary" className="mt-4 w-full">
-                  <Link to="/provider/stays">Manage</Link>
-                </Button>
-              </div>
+            {/* Progress bar */}
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-sand">
+              <div
+                className="h-full rounded-full bg-clay-700 transition-all duration-500"
+                style={{ width: `${profileCompletion}%` }}
+              />
             </div>
+
+            {missingFields.length > 0 ? (
+              <div className="space-y-2 pt-2 border-t border-ink-100">
+                <span className="text-xs font-semibold text-ink-700 block">
+                  Recommended items to complete:
+                </span>
+                <ul className="space-y-1 text-xs text-ink-600">
+                  {missingFields.slice(0, 3).map((item) => (
+                    <li key={item} className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild size="sm" variant="secondary" className="w-full mt-2">
+                  <Link to="/provider/profile">Complete Profile Details</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800 font-medium">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                Your provider profile is 100% complete and ready for travellers!
+              </div>
+            )}
           </Card>
 
-          <Card className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay-700">Learning and booking requests</p>
-                <h2 className="mt-1 text-2xl font-semibold text-ink-900">What travellers are asking for</h2>
-              </div>
-              <Badge variant="accent">{requests.length} total</Badge>
+          {/* Verification Status Card */}
+          <Card className="space-y-3 p-5 sm:p-6 bg-gradient-to-b from-white to-[#FDFBF7]">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">
+                Trust Status
+              </span>
+              <Badge variant={verificationConfig.badgeVariant}>
+                {verificationConfig.label}
+              </Badge>
             </div>
-
-            {recentRequests.length === 0 ? (
-              <EmptyState
-                title="No requests yet"
-                message="Learning, booking, and purchase requests will appear here once tourists start reaching out."
-                actionLabel="View requests"
-                actionHref="/provider/requests"
-              />
-            ) : (
-              <div className="space-y-4">
-                {recentRequests.map((request) => (
-                  <ProviderRequestCard key={request.id} request={request} />
-                ))}
-              </div>
+            <h3 className="font-display font-bold text-ink-900 text-sm">
+              {verificationStatus === 'verified'
+                ? 'Government-Verified Provider'
+                : 'Become a Verified Partner'}
+            </h3>
+            <p className="text-xs text-ink-600 leading-relaxed">
+              {verificationConfig.description}
+            </p>
+            {verificationStatus !== 'verified' && (
+              <Button asChild size="sm" variant="secondary" className="w-full">
+                <Link to="/provider/verification">
+                  {verificationStatus === 'under_review' ? 'View Submission' : 'Start Verification'}
+                </Link>
+              </Button>
             )}
           </Card>
         </div>
       </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1fr_0.95fr]">
-        <Card className="space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay-700">Recent reviews</p>
-              <h2 className="mt-1 text-2xl font-semibold text-ink-900">What travellers are saying</h2>
-            </div>
-            <Badge variant="accent">{recentReviews.length} recent</Badge>
-          </div>
-
-          {recentReviews.length === 0 ? (
-            <EmptyState
-              title="No reviews yet"
-              message="Traveller feedback will appear here once your destinations start attracting visitors."
-              actionLabel="Open reviews"
-              actionHref="/provider/reviews"
-            />
-          ) : (
-            <div className="space-y-4">
-              {recentReviews.map((review) => (
-                <ProviderReviewCard key={review.id} review={review} />
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card className="flex flex-col items-start justify-between gap-4 bg-ink-900 text-white md:flex-row md:items-center">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">Next step</p>
-            <h2 className="text-2xl font-semibold">Discover how your listings appear publicly</h2>
-            <p className="max-w-2xl text-sm leading-6 text-white/75">
-              Keep your provider presence updated so travellers always see polished, accurate, and trusted information.
-            </p>
-          </div>
-          <Button asChild variant="secondary">
-            <Link to="/explore" className="inline-flex items-center gap-2">
-              Explore Jharkhand
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        </Card>
-      </div>
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Provider Profile Page & Capability Manager
+// ---------------------------------------------------------------------------
 
 export function ProviderProfilePage() {
   const { profile, user, refreshProfile } = useAuth();
@@ -571,10 +585,10 @@ export function ProviderProfilePage() {
   const [websiteUrl, setWebsiteUrl] = useState(profile?.website_url ?? '');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? '');
   const [coverImageUrl, setCoverImageUrl] = useState(profile?.cover_image_url ?? '');
-  const [categoryText, setCategoryText] = useState((profile?.provider_categories ?? []).join(', '));
-  const [socialLinksText, setSocialLinksText] = useState(
-    profile?.social_links ? JSON.stringify(profile.social_links, null, 2) : '{\n  "instagram": "",\n  "facebook": ""\n}'
+  const [selectedCapabilities, setSelectedCapabilities] = useState<ProviderCapability[]>(
+    (profile?.provider_categories ?? []) as ProviderCapability[]
   );
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -589,32 +603,11 @@ export function ProviderProfilePage() {
     setWebsiteUrl(profile?.website_url ?? '');
     setAvatarUrl(profile?.avatar_url ?? '');
     setCoverImageUrl(profile?.cover_image_url ?? '');
-    setCategoryText((profile?.provider_categories ?? []).join(', '));
-    setSocialLinksText(profile?.social_links ? JSON.stringify(profile.social_links, null, 2) : '{\n  "instagram": "",\n  "facebook": ""\n}');
-  }, [
-    profile?.business_name,
-    profile?.full_name,
-    profile?.owner_name,
-    profile?.description,
-    profile?.phone,
-    profile?.address,
-    profile?.district,
-    profile?.state,
-    profile?.website_url,
-    profile?.avatar_url,
-    profile?.cover_image_url,
-    profile?.provider_categories,
-    profile?.social_links,
-  ]);
+    setSelectedCapabilities((profile?.provider_categories ?? []) as ProviderCapability[]);
+  }, [profile]);
 
-  const categories = categoryText
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!user) {
       setMessage('Please sign in again to update your profile.');
       return;
@@ -623,23 +616,6 @@ export function ProviderProfilePage() {
     try {
       setSaving(true);
       setMessage(null);
-
-      let socialLinks: Record<string, string> | null = null;
-
-      if (socialLinksText.trim()) {
-        try {
-          const parsed = JSON.parse(socialLinksText);
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            socialLinks = Object.fromEntries(
-              Object.entries(parsed as Record<string, unknown>).map(([key, value]) => [key, typeof value === 'string' ? value : String(value ?? '')])
-            );
-          }
-        } catch {
-          setMessage('Social links must be valid JSON.');
-          setSaving(false);
-          return;
-        }
-      }
 
       await updateProfile(user.id, {
         full_name: businessName.trim(),
@@ -653,9 +629,9 @@ export function ProviderProfilePage() {
         district: district.trim() || null,
         state: stateName.trim() || null,
         website_url: websiteUrl.trim() || null,
-        provider_categories: categories,
-        social_links: socialLinks,
+        provider_categories: selectedCapabilities,
       });
+
       await refreshProfile();
       setMessage('Profile updated successfully.');
     } catch (saveError) {
@@ -668,217 +644,219 @@ export function ProviderProfilePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Provider profile"
-        title="Business identity and contact details"
-        description="Keep your provider profile clean so travellers and administrators see accurate information."
+        eyebrow="Identity & Offerings"
+        title="Provider Profile & Capabilities"
+        description="Configure your business details, contact information, and active service capabilities."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-        <Card className="space-y-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay-700">Profile editing</p>
-              <h2 className="mt-1 text-2xl font-semibold text-ink-900">Update your public identity</h2>
-            </div>
-            <Badge variant="accent">{profile?.role ?? 'provider'}</Badge>
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card className="space-y-5 p-5 sm:p-6">
+          <div className="border-b border-ink-100 pb-3">
+            <h2 className="font-display text-lg font-bold text-ink-900">
+              1. Business Details
+            </h2>
           </div>
 
-          {message ? <div className="rounded-2xl border border-ink-200 bg-sand px-4 py-3 text-sm text-ink-700">{message}</div> : null}
+          {message && (
+            <div className="rounded-2xl border border-ink-200 bg-sand p-3.5 text-sm text-ink-800 font-medium">
+              {message}
+            </div>
+          )}
 
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Business / display name</span>
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                Business / Organization Name *
+              </span>
               <Input
                 value={businessName}
-                onChange={(event) => setBusinessName(event.target.value)}
-                placeholder="Jharkhand Homestays"
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="e.g. Netarhat Eco Retreat / Santhal Handloom Collective"
                 required
               />
             </label>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Owner name</span>
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                Owner / Representative Name
+              </span>
               <Input
                 value={ownerName}
-                onChange={(event) => setOwnerName(event.target.value)}
-                placeholder="Anuja Kumari"
+                onChange={(e) => setOwnerName(e.target.value)}
+                placeholder="e.g. Anuja Kumari"
               />
             </label>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Description</span>
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                About Your Business & Tourism Mission
+              </span>
               <Textarea
                 value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="Tell travellers what makes your business special."
-                className="min-h-28"
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Tell travellers what makes your offerings special, your cultural roots, and your local community impact."
+                rows={4}
               />
             </label>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Contact phone</span>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                  Contact Phone
+                </span>
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="+91 9XXXXXXXXX"
+                />
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                  Email
+                </span>
+                <Input value={profile?.email ?? user?.email ?? ''} readOnly className="bg-sand/40" />
+              </label>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                  District
+                </span>
+                <Input
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  placeholder="e.g. Latehar / Ranchi / Khunti"
+                />
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                  State
+                </span>
+                <Input value={stateName} onChange={(e) => setStateName(e.target.value)} />
+              </label>
+            </div>
+
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                Operating Address
+              </span>
               <Input
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                placeholder="+91 9XXXXXXXXX"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Village / Town, Landmark"
               />
             </label>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Email</span>
-              <Input value={profile?.email ?? user?.email ?? ''} readOnly />
-            </label>
-
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Address</span>
-              <Input value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Village, market, or property address" />
-            </label>
-
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">District</span>
-              <Input value={district} onChange={(event) => setDistrict(event.target.value)} placeholder="Ranchi" />
-            </label>
-
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">State</span>
-              <Input value={stateName} onChange={(event) => setStateName(event.target.value)} placeholder="Jharkhand" />
-            </label>
-
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Website / social website</span>
-              <Input value={websiteUrl} onChange={(event) => setWebsiteUrl(event.target.value)} placeholder="https://..." />
-            </label>
-
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Avatar / logo URL</span>
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                Website / Social URL
+              </span>
               <Input
-                value={avatarUrl}
-                onChange={(event) => setAvatarUrl(event.target.value)}
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
                 placeholder="https://..."
               />
             </label>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Cover image URL</span>
-              <Input
-                value={coverImageUrl}
-                onChange={(event) => setCoverImageUrl(event.target.value)}
-                placeholder="https://..."
-              />
-            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                  Profile / Logo URL
+                </span>
+                <Input
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+              </label>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Provider categories</span>
-              <Input
-                value={categoryText}
-                onChange={(event) => setCategoryText(event.target.value)}
-                placeholder="Destination, Guide, Artisan"
-              />
-              <p className="text-xs text-ink-500">Separate multiple categories with commas.</p>
-            </label>
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-700">
+                  Cover Photo URL
+                </span>
+                <Input
+                  value={coverImageUrl}
+                  onChange={(e) => setCoverImageUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+              </label>
+            </div>
 
-            <label className="block space-y-2">
-              <span className="text-sm font-medium text-ink-700">Social links JSON</span>
-              <Textarea
-                value={socialLinksText}
-                onChange={(event) => setSocialLinksText(event.target.value)}
-                placeholder='{\n  "instagram": "https://instagram.com/...",\n  "facebook": "https://facebook.com/..."\n}'
-                className="min-h-32 font-mono text-xs"
+            {/* Capability Selector embedded */}
+            <div className="pt-4 border-t border-ink-100 space-y-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-ink-700 block">
+                2. Active Service Capabilities (Multi-select)
+              </span>
+              <ProviderCapabilitySelector
+                selected={selectedCapabilities}
+                onChange={setSelectedCapabilities}
               />
-            </label>
+            </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex items-center justify-end gap-3 pt-4">
               <Button type="submit" disabled={saving}>
-                {saving ? 'Saving...' : 'Save Profile'}
-              </Button>
-              <Button asChild variant="secondary">
-                <Link to="/provider/dashboard">Back to Dashboard</Link>
+                {saving ? 'Saving Profile...' : 'Save All Profile Changes'}
               </Button>
             </div>
           </form>
         </Card>
 
-        <Card className="space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay-700">Profile snapshot</p>
-          <div className="grid gap-3">
-            <div className="rounded-2xl bg-sand px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">Business name</p>
-              <p className="mt-1 text-sm font-medium text-ink-900">{profile?.business_name || profile?.full_name || 'Not set'}</p>
+        {/* Live Public Profile Preview Snapshot */}
+        <div className="space-y-6">
+          <Card className="space-y-4 p-5 sm:p-6 bg-white shadow-sm border border-ink-200">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">
+              Public Preview Card
+            </span>
+            <div className="rounded-2xl border border-ink-200 overflow-hidden bg-sand/30">
+              <div className="h-32 bg-sand w-full overflow-hidden">
+                {coverImageUrl ? (
+                  <img src={coverImageUrl} alt="Cover" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-r from-clay-700 to-ink-900" />
+                )}
+              </div>
+              <div className="p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-display font-bold text-ink-900 text-lg">
+                    {businessName || 'Business Name'}
+                  </h3>
+                  <Badge variant="accent">
+                    {selectedCapabilities.length > 0
+                      ? `${selectedCapabilities.length} Services`
+                      : 'Unassigned'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-ink-600 line-clamp-2">
+                  {description || 'No description provided yet.'}
+                </p>
+                <div className="flex items-center gap-1.5 text-xs text-clay-800 pt-1 font-medium">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {district ? `${district}, Jharkhand` : 'Jharkhand'}
+                </div>
+              </div>
             </div>
-            <div className="rounded-2xl bg-sand px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">Owner</p>
-              <p className="mt-1 text-sm font-medium text-ink-900">{profile?.owner_name || 'Not set'}</p>
-            </div>
-            <div className="rounded-2xl bg-sand px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">Email</p>
-              <p className="mt-1 text-sm font-medium text-ink-900">{profile?.email ?? user?.email ?? 'No email available'}</p>
-            </div>
-            <div className="rounded-2xl bg-sand px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">District</p>
-              <p className="mt-1 text-sm font-medium text-ink-900">{profile?.district || 'Not set'}</p>
-            </div>
-            <div className="rounded-2xl bg-sand px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">Categories</p>
-              <p className="mt-1 text-sm font-medium text-ink-900">
-                {profile?.provider_categories?.length
-                  ? profile.provider_categories.map((category) => getProviderCategoryLabel(category)).join(', ')
-                  : 'Not set'}
-              </p>
-            </div>
-          </div>
 
-          <div className="rounded-2xl border border-dashed border-ink-300 bg-white/70 p-4 text-sm leading-6 text-ink-600">
-            Keep this information accurate so travellers and future moderation tools can trust your account identity.
-          </div>
-
-          <div className="space-y-3 rounded-2xl border border-ink-200 bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay-700">Profile checklist</p>
-            <ul className="space-y-2 text-sm leading-6 text-ink-700">
-              {providerBullets.profile.map((bullet) => (
-                <li key={bullet} className="rounded-xl bg-sand px-3 py-2">
-                  {bullet}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Card>
+            {user?.id && (
+              <Button asChild variant="secondary" size="sm" className="w-full">
+                <Link to={`/providers/${user.id}`} target="_blank">
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                  Open Live Storefront
+                </Link>
+              </Button>
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );
 }
 
-export function ProviderVerificationPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Provider verification"
-      title="Verification workflow"
-      description="Document review and trust verification will be added in a later phase."
-      bullets={providerBullets.verification}
-    />
-  );
-}
-
-export function ProviderPaymentsPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Provider payments"
-      title="Payments and settlements"
-      description="UPI, settlement, and payout tooling will be introduced later."
-      bullets={providerBullets.payments}
-    />
-  );
-}
-
-export function ProviderAnalyticsPage() {
-  return (
-    <PlaceholderPage
-      eyebrow="Provider analytics"
-      title="Provider analytics"
-      description="Operational charts and conversion tracking will appear here in a later phase."
-      bullets={providerBullets.analytics}
-    />
-  );
-}
+// ---------------------------------------------------------------------------
+// Provider Reviews Page
+// ---------------------------------------------------------------------------
 
 export function ProviderReviewsPage() {
   const [listings, setListings] = useState<Destination[]>([]);
@@ -887,43 +865,29 @@ export function ProviderReviewsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let alive = true;
-
     const loadReviews = async () => {
       try {
         setLoading(true);
         setError(null);
         const providerListings = await getMyProviderListings();
-        const reviewRows = await getReviewsForDestinationIds(providerListings.map((listing) => listing.id));
-
-        if (!alive) {
-          return;
-        }
+        const reviewRows = await getReviewsForDestinationIds(providerListings.map((l) => l.id));
 
         setListings(providerListings);
         setReviews(reviewRows);
-      } catch (loadError) {
-        if (alive) {
-          setError(loadError instanceof Error ? loadError.message : 'Unable to load reviews.');
-        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unable to load reviews.');
       } finally {
-        if (alive) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     void loadReviews();
-
-    return () => {
-      alive = false;
-    };
   }, []);
 
   const averageRating = getAverageRating(reviews);
 
   if (loading) {
-    return <LoadingState label="Loading provider reviews..." />;
+    return <LoadingState label="Loading traveller reviews..." />;
   }
 
   if (error) {
@@ -933,28 +897,38 @@ export function ProviderReviewsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Provider reviews"
-        title="Traveller feedback across your destinations"
-        description="Read what visitors are saying about your destinations and local experiences."
-        actions={
-          <Button asChild variant="secondary">
-            <Link to="/provider/dashboard">Back to Dashboard</Link>
-          </Button>
-        }
+        eyebrow="Traveller Feedback"
+        title="Customer Reviews & Ratings"
+        description="Authentic feedback and ratings left by verified travellers across your listings and services."
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label="Review count" value={String(reviews.length)} detail="Feedback across managed listings" icon={Users} />
-        <StatCard label="Average rating" value={averageRating ? averageRating.toFixed(1) : '0.0'} detail="Traveller sentiment" icon={BarChart3} />
-        <StatCard label="Managed destinations" value={String(listings.length)} detail="Public listings under your account" icon={Store} />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Total Reviews"
+          value={String(reviews.length)}
+          detail="Feedback across all offerings"
+          icon={Users}
+        />
+        <StatCard
+          label="Average Rating"
+          value={averageRating ? `${averageRating} ★` : '—'}
+          detail="Calculated from real reviews"
+          icon={Star}
+        />
+        <StatCard
+          label="Managed Destinations"
+          value={String(listings.length)}
+          detail="Locations linked to your account"
+          icon={Store}
+        />
       </div>
 
       {reviews.length === 0 ? (
         <EmptyState
           title="No reviews yet"
-          message="Once travellers start leaving feedback, you’ll see it here."
-          actionLabel="Open listings"
-          actionHref="/provider/listings"
+          message="Traveller reviews will appear here once visitors explore your destinations and complete bookings."
+          actionLabel="View Dashboard"
+          actionHref="/provider/dashboard"
         />
       ) : (
         <div className="space-y-4">
@@ -966,3 +940,7 @@ export function ProviderReviewsPage() {
     </div>
   );
 }
+
+// Re-exports of modular pages for backward compatibility
+export { ProviderVerificationPage } from './ProviderVerificationPage';
+export { ProviderAnalyticsPage } from './ProviderAnalyticsPage';

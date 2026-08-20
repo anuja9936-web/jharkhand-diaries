@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  Compass,
   GraduationCap,
   HelpCircle,
   MapPin,
@@ -76,6 +77,36 @@ function getRequestFormConfig(kind: ProviderOfferingKind): RequestFormConfig {
         messageLabel: 'What would you like to learn?',
         messagePlaceholder: 'Tell the artisan about your experience level, specific craft questions, or group requirements...',
         successMessage: 'Learning request submitted! The artisan will confirm availability.',
+      };
+    case 'tour':
+      return {
+        requestType: 'tour',
+        title: 'Book Guided Tour',
+        subtitle: 'Connect directly with the local guide to confirm dates, itinerary route, and group schedule.',
+        buttonLabel: 'Send Tour Request',
+        dateLabel: 'Preferred tour date',
+        durationLabel: 'Preferred timing / batch',
+        durationPlaceholder: 'e.g. Morning 08:00 AM, Full Day',
+        participantsLabel: 'Number of participants',
+        participantsDefault: 2,
+        messageLabel: 'Special requests or custom stops',
+        messagePlaceholder: 'Mention language preferences, physical fitness level, pickup location, or custom landmarks...',
+        successMessage: 'Tour booking request sent! The guide will confirm your itinerary and schedule.',
+      };
+    case 'transport':
+      return {
+        requestType: 'transport',
+        title: 'Book Vehicle / Transfer',
+        subtitle: 'Request pickup location, travel schedule, passenger count, and route options.',
+        buttonLabel: 'Submit Transport Request',
+        dateLabel: 'Travel date',
+        durationLabel: 'Trip duration / return plan',
+        durationPlaceholder: 'e.g. 1 day, one-way drop, 3-day rental',
+        participantsLabel: 'Number of passengers',
+        participantsDefault: 4,
+        messageLabel: 'Pickup address & destination details',
+        messagePlaceholder: 'Specify airport flight number, pickup landmark, luggage count, or sightseeing route...',
+        successMessage: 'Transport request sent! The operator will confirm vehicle availability.',
       };
     case 'stay':
       return {
@@ -381,9 +412,27 @@ function PublicOfferingPage({ kind }: { kind: ProviderOfferingKind }) {
       {/* Back button link */}
       <div className="flex items-center justify-between">
         <Button asChild variant="ghost" className="gap-2 px-0 text-xs font-semibold text-ink-600 hover:text-clay-700">
-          <Link to={isStay ? '/accommodations' : '/marketplace'}>
+          <Link
+            to={
+              kind === 'stay'
+                ? '/accommodations'
+                : kind === 'tour'
+                  ? '/tours'
+                  : kind === 'transport'
+                    ? '/transport'
+                    : '/marketplace'
+            }
+          >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>{isStay ? 'Back to Accommodations' : 'Back to Marketplace'}</span>
+            <span>
+              {kind === 'stay'
+                ? 'Back to Accommodations'
+                : kind === 'tour'
+                  ? 'Back to Tours'
+                  : kind === 'transport'
+                    ? 'Back to Transport'
+                    : 'Back to Marketplace'}
+            </span>
           </Link>
         </Button>
 
@@ -584,30 +633,40 @@ function PublicOfferingPage({ kind }: { kind: ProviderOfferingKind }) {
             </Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            {related.map((item) => (
-              <Link
-                key={item.id}
-                to={`/${item.kind === 'stay' ? 'stays' : item.kind === 'experience' ? 'experiences' : 'products'}/${item.id}`}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-clay-300 hover:shadow-md"
-              >
-                <div className="aspect-[16/10] overflow-hidden bg-sand">
-                  <img
-                    src={item.cover_image || DEFAULT_DESTINATION_IMAGE}
-                    alt={item.name}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
-                <div className="flex flex-1 flex-col p-3.5">
-                  <h4 className="font-semibold text-sm text-ink-900 group-hover:text-clay-700">{item.name}</h4>
-                  <div className="mt-auto pt-2 flex items-center justify-between text-xs">
-                    <span className="font-bold text-ink-900">
-                      {item.price != null ? formatIndianCurrency(item.price) : 'Enquire'}
-                    </span>
-                    <span className="font-medium text-clay-700">View →</span>
+            {related.map((item) => {
+              const kindRouteMap: Record<string, string> = {
+                stay: 'stays',
+                experience: 'experiences',
+                product: 'products',
+                tour: 'tours',
+                transport: 'transport',
+              };
+              const kindRoute = kindRouteMap[item.kind] ?? 'products';
+              return (
+                <Link
+                  key={item.id}
+                  to={`/${kindRoute}/${item.id}`}
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-clay-300 hover:shadow-md"
+                >
+                  <div className="aspect-[16/10] overflow-hidden bg-sand">
+                    <img
+                      src={item.cover_image || DEFAULT_DESTINATION_IMAGE}
+                      alt={item.name}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
                   </div>
-                </div>
-              </Link>
-            ))}
+                  <div className="flex flex-1 flex-col p-3.5">
+                    <h4 className="font-semibold text-sm text-ink-900 group-hover:text-clay-700">{item.name}</h4>
+                    <div className="mt-auto pt-2 flex items-center justify-between text-xs">
+                      <span className="font-bold text-ink-900">
+                        {item.price != null ? formatIndianCurrency(item.price) : 'Enquire'}
+                      </span>
+                      <span className="font-medium text-clay-700">View →</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       ) : null}
@@ -625,6 +684,8 @@ function PublicProviderProfilePage() {
   const [products, setProducts] = useState<ProviderOffering[]>([]);
   const [experiences, setExperiences] = useState<ProviderOffering[]>([]);
   const [stays, setStays] = useState<ProviderOffering[]>([]);
+  const [tours, setTours] = useState<ProviderOffering[]>([]);
+  const [transports, setTransports] = useState<ProviderOffering[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -662,11 +723,13 @@ function PublicProviderProfilePage() {
 
         setProfile(providerProfile);
 
-        // Fetch products, experiences, and stays in parallel
-        const [prodList, expList, stayList] = await Promise.all([
+        // Fetch products, experiences, stays, tours, and transports in parallel
+        const [prodList, expList, stayList, tourList, transportList] = await Promise.all([
           getPublicProviderOfferingsByProvider(providerId, 'product').catch(() => []),
           getPublicProviderOfferingsByProvider(providerId, 'experience').catch(() => []),
           getPublicProviderOfferingsByProvider(providerId, 'stay').catch(() => []),
+          getPublicProviderOfferingsByProvider(providerId, 'tour').catch(() => []),
+          getPublicProviderOfferingsByProvider(providerId, 'transport').catch(() => []),
         ]);
 
         if (!alive) return;
@@ -674,6 +737,8 @@ function PublicProviderProfilePage() {
         setProducts(prodList);
         setExperiences(expList);
         setStays(stayList);
+        setTours(tourList);
+        setTransports(transportList);
       } catch (loadError) {
         if (alive) {
           setError(loadError instanceof Error ? loadError.message : 'Unable to load provider profile.');
@@ -754,7 +819,8 @@ function PublicProviderProfilePage() {
     profile.provider_categories?.some((cat) => cat.toLowerCase().includes('craft') || cat.toLowerCase().includes('artisan')) ||
     products.length > 0;
 
-  const totalOfferings = products.length + experiences.length + stays.length;
+  const totalOfferings =
+    products.length + experiences.length + stays.length + tours.length + transports.length;
 
   return (
     <div className="space-y-8 pb-12">
@@ -787,9 +853,16 @@ function PublicProviderProfilePage() {
 
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="accent" className="text-xs">
-                    {isArtisan ? 'Master Artisan & Maker' : 'Verified Local Host'}
-                  </Badge>
+                  {profile.verification_status === 'verified' ? (
+                    <Badge variant="success" className="inline-flex items-center gap-1 text-xs font-bold">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Verified Provider
+                    </Badge>
+                  ) : (
+                    <Badge variant="accent" className="text-xs">
+                      {isArtisan ? 'Master Artisan & Maker' : 'Verified Local Host'}
+                    </Badge>
+                  )}
                   {profile.district ? (
                     <Badge variant="neutral" className="text-xs">
                       {profile.district}, Jharkhand
@@ -820,14 +893,20 @@ function PublicProviderProfilePage() {
             </p>
           </div>
 
-          {/* Tags & Categories */}
+          {/* Services Offered Badges */}
           {profile.provider_categories && profile.provider_categories.length > 0 ? (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {profile.provider_categories.map((cat) => (
-                <span key={cat} className="inline-flex items-center rounded-full bg-sand px-3 py-1 text-xs font-medium text-ink-700">
-                  {getProviderCategoryLabel(cat)}
-                </span>
-              ))}
+            <div className="space-y-1.5 border-t border-ink-100 pt-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-clay-700">Services Offered</h3>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {profile.provider_categories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="inline-flex items-center gap-1 rounded-full bg-sand px-3 py-1 text-xs font-semibold text-clay-800"
+                  >
+                    {getProviderCategoryLabel(cat)}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : null}
         </div>
@@ -1058,11 +1137,97 @@ function PublicProviderProfilePage() {
           </div>
         ) : null}
 
+        {/* Tours & Guiding Section */}
+        {tours.length > 0 ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b border-ink-100 pb-2">
+              <Compass className="h-4 w-4 text-clay-700" />
+              <h2 className="text-lg font-bold text-ink-900">Guided Tours & Itineraries ({tours.length})</h2>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {tours.map((item) => (
+                <Card
+                  key={item.id}
+                  className="group flex flex-col overflow-hidden border-ink-200 bg-white p-0 shadow-sm transition hover:-translate-y-1 hover:border-clay-300 hover:shadow-md"
+                >
+                  <div className="aspect-[16/10] overflow-hidden bg-sand">
+                    <img
+                      src={item.cover_image || DEFAULT_DESTINATION_IMAGE}
+                      alt={item.name}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col p-4">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-clay-700">
+                      {item.category || 'Guided Tour'}
+                    </span>
+                    <h3 className="font-bold text-base text-ink-900 mt-1">{item.name}</h3>
+                    <p className="mt-1 text-xs text-ink-600 line-clamp-2">
+                      {item.short_description || item.description}
+                    </p>
+                    <div className="mt-auto pt-3 border-t border-ink-100 flex items-center justify-between">
+                      <span className="text-sm font-bold text-ink-900">
+                        {item.price != null ? formatIndianCurrency(item.price) : 'Enquire'}
+                      </span>
+                      <Button asChild variant="primary" className="px-3 py-1.5 text-xs">
+                        <Link to={`/tours/${item.id}`}>Book Tour</Link>
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Transport Services Section */}
+        {transports.length > 0 ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b border-ink-100 pb-2">
+              <Package className="h-4 w-4 text-clay-700" />
+              <h2 className="text-lg font-bold text-ink-900">Transport & Vehicle Services ({transports.length})</h2>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {transports.map((item) => (
+                <Card
+                  key={item.id}
+                  className="group flex flex-col overflow-hidden border-ink-200 bg-white p-0 shadow-sm transition hover:-translate-y-1 hover:border-clay-300 hover:shadow-md"
+                >
+                  <div className="aspect-[16/10] overflow-hidden bg-sand">
+                    <img
+                      src={item.cover_image || DEFAULT_DESTINATION_IMAGE}
+                      alt={item.name}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col p-4">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-clay-700">
+                      {item.category || 'Transport'}
+                    </span>
+                    <h3 className="font-bold text-base text-ink-900 mt-1">{item.name}</h3>
+                    <p className="mt-1 text-xs text-ink-600 line-clamp-2">
+                      {item.short_description || item.description}
+                    </p>
+                    <div className="mt-auto pt-3 border-t border-ink-100 flex items-center justify-between">
+                      <span className="text-sm font-bold text-ink-900">
+                        {item.price != null ? `${formatIndianCurrency(item.price)}` : 'Enquire'}
+                      </span>
+                      <Button asChild variant="primary" className="px-3 py-1.5 text-xs">
+                        <Link to={`/transport/${item.id}`}>Book Transfer</Link>
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {/* Empty state if provider has 0 offerings published */}
         {totalOfferings === 0 ? (
           <EmptyState
             title="No published items yet"
-            message="This provider has not published any products, experiences, or stays at this time."
+            message="This provider has not published any products, experiences, stays, tours, or transport services at this time."
             actionLabel="Explore other offerings"
             actionHref="/marketplace"
           />
@@ -1084,4 +1249,19 @@ function PublicStayPage() {
   return <PublicOfferingPage kind="stay" />;
 }
 
-export { PublicProviderProfilePage, PublicProductPage, PublicExperiencePage, PublicStayPage };
+function PublicTourPage() {
+  return <PublicOfferingPage kind="tour" />;
+}
+
+function PublicTransportPage() {
+  return <PublicOfferingPage kind="transport" />;
+}
+
+export {
+  PublicProviderProfilePage,
+  PublicProductPage,
+  PublicExperiencePage,
+  PublicStayPage,
+  PublicTourPage,
+  PublicTransportPage,
+};

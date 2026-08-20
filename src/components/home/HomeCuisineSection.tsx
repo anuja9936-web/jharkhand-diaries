@@ -1,6 +1,7 @@
 import { ArrowRight, Sparkles, Utensils } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../ui';
+import { CUISINE_IMAGES } from '../../constants/contentImages';
 
 interface Dish {
   id: string;
@@ -24,7 +25,7 @@ const DISHES: Dish[] = [
     ingredients: 'Rice, Chana Dal, Cumin, Mustard Oil, Spices',
     region: 'Statewide / Ranchi / Latehar',
     badge: 'Signature Dish',
-    image: '/images/destinations/patratu-valley.jpg',
+    image: CUISINE_IMAGES.DHUSKA,
   },
   {
     id: 'chilka-roti',
@@ -35,7 +36,7 @@ const DISHES: Dish[] = [
     ingredients: 'Chotanagpur Indigenous Rice, Chana Dal, Salt',
     region: 'Santhal Pargana & Kolhan',
     badge: 'Traditional Heritage',
-    image: '/images/destinations/netarhat.jpg',
+    image: CUISINE_IMAGES.CHILKA_ROTI,
   },
   {
     id: 'rugra',
@@ -46,7 +47,7 @@ const DISHES: Dish[] = [
     ingredients: 'Wild Sal Mushrooms, Mustard Paste, Garlic, Spices',
     region: 'Saranda & Palamu Forests',
     badge: 'Seasonal Wild Delicacy',
-    image: '/images/destinations/betla-national-park.jpg',
+    image: CUISINE_IMAGES.RUGRA_CURRY,
   },
   {
     id: 'thekua',
@@ -57,7 +58,7 @@ const DISHES: Dish[] = [
     ingredients: 'Wheat Flour, Desi Ghee, Jaggery, Cardamom, Fennel',
     region: 'Chhath Puja / Statewide',
     badge: 'Festive Confection',
-    image: '/images/destinations/deoghar-baidyanath.jpg',
+    image: CUISINE_IMAGES.THEKUA,
   },
   {
     id: 'arsa',
@@ -68,7 +69,7 @@ const DISHES: Dish[] = [
     ingredients: 'Aromatic Rice, Cane Jaggery, White Sesame',
     region: 'Tribal Weddings & Harvest Festivals',
     badge: 'Celebration Sweet',
-    image: '/images/destinations/jonha-falls.jpg',
+    image: CUISINE_IMAGES.ARSA,
   },
   {
     id: 'karil',
@@ -79,7 +80,7 @@ const DISHES: Dish[] = [
     ingredients: 'Fresh Bamboo Shoots, Mustard, Turmeric, Dry Chilies',
     region: 'Chotanagpur Highlands',
     badge: 'Forest Foraging',
-    image: '/images/destinations/hundru-falls.jpg',
+    image: CUISINE_IMAGES.KARIL_BAMBOO,
   },
 ];
 
@@ -105,7 +106,7 @@ export function HomeCuisineSection() {
         {DISHES.map((dish) => (
           <article
             key={dish.id}
-            className="group relative flex flex-col rounded-3xl border border-ink-200/80 bg-white p-6 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-clay-300 hover:shadow-xl justify-between"
+            className="group relative flex flex-col rounded-3xl border border-ink-200/90 bg-[#FFFDF9] p-6 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-clay-300 hover:shadow-xl justify-between"
           >
             <div className="space-y-4">
               {/* Card Header: Tag & Region */}

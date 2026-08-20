@@ -61,7 +61,7 @@ export function HomeTravellerFeedbackSection() {
           {TRAVELLER_STORIES.map((story) => (
             <div
               key={story.id}
-              className="relative flex flex-col justify-between rounded-3xl border border-ink-200/80 bg-white p-7 shadow-xs hover:border-clay-300 hover:shadow-lg transition-all duration-300"
+              className="relative flex flex-col justify-between rounded-3xl border border-ink-200/90 bg-[#FFFDF9] p-7 shadow-xs hover:border-clay-300 hover:shadow-lg transition-all duration-300"
             >
               <div className="space-y-4">
                 <Quote className="h-8 w-8 text-clay-300" />

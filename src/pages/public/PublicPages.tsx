@@ -28,7 +28,7 @@ import { HomeResponsiblePartnerSection } from '../../components/home/HomeRespons
 
 export function HomePage() {
   return (
-    <div className="w-full bg-white overflow-x-hidden selection:bg-amber-400 selection:text-ink-950">
+    <div className="w-full bg-[#FAF7F2] overflow-x-hidden selection:bg-amber-400 selection:text-ink-950">
       {/* 1. Hero Section */}
       <HeroCarousel />
 
@@ -96,46 +96,46 @@ export function VendorsPage() {
 
 export function AboutPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8 space-y-12">
+    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8 space-y-12 bg-[#FAF7F2]">
       <div className="text-center space-y-3">
         <p className="text-xs font-bold uppercase tracking-[0.24em] text-clay-700">About Jharkhand Tourism</p>
         <h1 className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-ink-900">
           Land of Forests, Cascades &amp; Living Tribal Heritage
         </h1>
-        <p className="mx-auto max-w-2xl text-base leading-relaxed text-ink-600">
+        <p className="mx-auto max-w-2xl text-base leading-relaxed text-ink-700">
           Jharkhand, literally translated as the "Land of Forests", is home to breathtaking waterfalls,
           sacred heritage shrines, sprawling wildlife sanctuaries, and rich indigenous art traditions across all 24 districts.
         </p>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-3">
-        <Card className="border-clay-200 bg-white/90 p-6 text-center space-y-2.5">
+        <Card className="border-ink-200/90 bg-[#FFFDF9] p-6 text-center space-y-2.5 shadow-xs">
           <p className="text-xs font-bold uppercase tracking-wider text-clay-700">Waterfalls &amp; Nature</p>
           <h3 className="font-display text-xl font-bold text-ink-900">Pristine Wilderness</h3>
-          <p className="text-xs leading-relaxed text-ink-600">
+          <p className="text-xs leading-relaxed text-ink-700">
             From Hundru and Dassam to Jonha, Lodh and Hirni Falls, experience roaring cascades amid ancient Precambrian hills.
           </p>
         </Card>
 
-        <Card className="border-clay-200 bg-white/90 p-6 text-center space-y-2.5">
+        <Card className="border-ink-200/90 bg-[#FFFDF9] p-6 text-center space-y-2.5 shadow-xs">
           <p className="text-xs font-bold uppercase tracking-wider text-clay-700">Heritage &amp; Spirituality</p>
           <h3 className="font-display text-xl font-bold text-ink-900">Sacred Sanctuaries</h3>
-          <p className="text-xs leading-relaxed text-ink-600">
+          <p className="text-xs leading-relaxed text-ink-700">
             Baidyanath Dham, Rajrappa Maa Chhinnamasta, and the 17th-century Jagannath Temple represent timeless devotion.
           </p>
         </Card>
 
-        <Card className="border-clay-200 bg-white/90 p-6 text-center space-y-2.5">
+        <Card className="border-ink-200/90 bg-[#FFFDF9] p-6 text-center space-y-2.5 shadow-xs">
           <p className="text-xs font-bold uppercase tracking-wider text-clay-700">Art &amp; Community</p>
           <h3 className="font-display text-xl font-bold text-ink-900">GI-Tagged Traditions</h3>
-          <p className="text-xs leading-relaxed text-ink-600">
+          <p className="text-xs leading-relaxed text-ink-700">
             Celebrate indigenous Sohrai and Khovar mural traditions, Dokra bell metal casting, and community-led sustainable tourism.
           </p>
         </Card>
       </div>
 
       <div className="text-center pt-4">
-        <Button asChild size="lg">
+        <Button asChild size="lg" className="bg-forest-900 text-white hover:bg-forest-800">
           <Link to="/explore" className="inline-flex items-center gap-2">
             <span>Explore All 24 Districts</span>
             <ArrowRight className="h-4 w-4" />

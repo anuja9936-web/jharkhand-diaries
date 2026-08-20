@@ -1,10 +1,39 @@
-export type ProviderOfferingKind = 'product' | 'experience' | 'stay';
+export type ProviderCapability =
+  | 'accommodation'
+  | 'artisan'
+  | 'guide'
+  | 'adventure'
+  | 'transport';
+
+export type ProviderOfferingKind =
+  | 'stay'
+  | 'product'
+  | 'experience'
+  | 'tour'
+  | 'transport';
 
 export type ProviderOfferingStatus = 'draft' | 'published' | 'archived';
 
-export type ProviderRequestType = 'learning' | 'booking' | 'order';
+export type ProviderRequestType =
+  | 'learning'
+  | 'booking'
+  | 'order'
+  | 'tour'
+  | 'transport'
+  | 'enquiry';
 
-export type ProviderRequestStatus = 'pending' | 'accepted' | 'rejected' | 'completed' | 'cancelled';
+export type ProviderRequestStatus =
+  | 'pending'
+  | 'accepted'
+  | 'rejected'
+  | 'completed'
+  | 'cancelled';
+
+export type ProviderVerificationStatus =
+  | 'unverified'
+  | 'under_review'
+  | 'verified'
+  | 'rejected';
 
 export interface ProviderOffering {
   id: string;
@@ -58,5 +87,17 @@ export interface ProviderPublicProfile {
   state: string | null;
   website_url: string | null;
   provider_categories: string[] | null;
+  verification_status?: ProviderVerificationStatus | null;
+  created_at: string;
+}
+
+export interface ProviderNotification {
+  id: string;
+  provider_id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'request' | 'review' | 'verification' | 'alert';
+  read: boolean;
+  link?: string | null;
   created_at: string;
 }

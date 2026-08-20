@@ -5,7 +5,18 @@ import { ROLE_LABELS } from '../../constants/roles';
 import type { UserRole } from '../../types/common';
 import { Badge } from '../ui';
 
-export function Sidebar({ role }: { role: UserRole }) {
+import { AdminSidebar } from './AdminSidebar';
+import { ProviderSidebar } from './ProviderSidebar';
+
+export function Sidebar({ role, className }: { role: UserRole; className?: string }) {
+  if (role === 'admin') {
+    return <AdminSidebar className={className} />;
+  }
+
+  if (role === 'provider') {
+    return <ProviderSidebar className={className} />;
+  }
+
   const links = roleNavMap[role];
 
   return (

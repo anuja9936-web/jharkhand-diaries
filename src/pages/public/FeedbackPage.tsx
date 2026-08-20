@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CheckCircle2, Send, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button, Card, Input } from '../../components/ui';
+import { submitTouristFeedback } from '../../services/admin/adminGovernanceService';
 
 export function FeedbackPage() {
   const [name, setName] = useState('');
@@ -9,12 +10,33 @@ export function FeedbackPage() {
   const [category, setCategory] = useState<'destination' | 'platform' | 'culture' | 'other'>('destination');
   const [rating, setRating] = useState(5);
   const [feedback, setFeedback] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!feedback.trim()) return;
-    setSubmitted(true);
+
+    try {
+      setSubmitting(true);
+      await submitTouristFeedback({
+        reporter_name: name.trim() || 'Anonymous Tourist',
+        reporter_email: email.trim() || undefined,
+        category:
+          category === 'destination'
+            ? 'destination_issue'
+            : category === 'platform'
+              ? 'service_complaint'
+              : 'tourist_feedback',
+        subject: `${category.toUpperCase()}: ${feedback.slice(0, 45)}...`,
+        message: `${feedback.trim()} (Rating: ${rating}★)`,
+      });
+      setSubmitted(true);
+    } catch {
+      setSubmitted(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -152,9 +174,9 @@ export function FeedbackPage() {
               <Button asChild variant="ghost">
                 <Link to="/">Cancel</Link>
               </Button>
-              <Button type="submit" className="inline-flex items-center gap-2">
+              <Button type="submit" disabled={submitting} className="inline-flex items-center gap-2 font-bold">
                 <Send className="h-4 w-4" />
-                Submit Feedback
+                {submitting ? 'Sending...' : 'Submit Feedback'}
               </Button>
             </div>
           </form>

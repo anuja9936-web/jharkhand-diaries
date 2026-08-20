@@ -106,6 +106,16 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/tours" className="hover:text-white transition-colors">
+                  Guided Tours
+                </Link>
+              </li>
+              <li>
+                <Link to="/transport" className="hover:text-white transition-colors">
+                  Transport Services
+                </Link>
+              </li>
+              <li>
                 <Link to="/marketplace" className="hover:text-white transition-colors">
                   Artisan Marketplace
                 </Link>
@@ -138,8 +148,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/admin" className="text-sand font-medium hover:text-white transition-colors">
-                  Government Portal →
+                <Link to="/auth/government" className="text-sand font-medium hover:text-white transition-colors">
+                  Government Login →
                 </Link>
               </li>
             </ul>

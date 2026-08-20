@@ -27,7 +27,7 @@ interface MarketplaceConfig {
   singular: string;
   description: string;
   createLabel: string;
-  routeSegment: 'products' | 'experiences' | 'stays';
+  routeSegment: 'products' | 'experiences' | 'stays' | 'tours' | 'transport';
 }
 
 const MARKETPLACE_CONFIG: Record<ProviderOfferingKind, MarketplaceConfig> = {
@@ -54,6 +54,22 @@ const MARKETPLACE_CONFIG: Record<ProviderOfferingKind, MarketplaceConfig> = {
     description: 'Manage hotels, homestays, guesthouses, and other accommodation options.',
     createLabel: 'Add Stay',
     routeSegment: 'stays',
+  },
+  tour: {
+    kind: 'tour',
+    title: 'Tours & Guides',
+    singular: 'Tour',
+    description: 'Manage guided itineraries, nature trails, and heritage walks.',
+    createLabel: 'Add Tour',
+    routeSegment: 'tours',
+  },
+  transport: {
+    kind: 'transport',
+    title: 'Transport Services',
+    singular: 'Transport',
+    description: 'Manage vehicle rentals, airport transfers, and tourist cab services.',
+    createLabel: 'Add Vehicle',
+    routeSegment: 'transport',
   },
 };
 

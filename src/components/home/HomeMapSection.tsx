@@ -58,7 +58,7 @@ export function HomeMapSection() {
         </div>
 
         {/* Map Container + Destination Quick Selector */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 rounded-3xl border border-ink-200 bg-white p-3 sm:p-4 shadow-xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 rounded-3xl border border-ink-200/90 bg-[#FFFDF9] p-3 sm:p-4 shadow-xl">
           {/* Quick Destination Pills Drawer */}
           <div className="p-4 flex flex-col justify-between space-y-4 max-h-[480px] overflow-y-auto">
             <div className="space-y-3">

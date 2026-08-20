@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ComponentType, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
+  AlertTriangle,
   ArrowLeft,
   CalendarDays,
   Coins,
@@ -35,6 +36,8 @@ import {
   type DestinationReviewSummary,
 } from '../../services/reviews/reviewService';
 import { getPublishedOfferingsByDistrict } from '../../services/provider/publicOfferingService';
+import { getActivePublicAlerts } from '../../services/admin/adminGovernanceService';
+import type { TourismAlert } from '../../types/admin';
 import type { Destination } from '../../types/destination';
 import type { ProviderOffering } from '../../types/provider';
 
@@ -183,6 +186,9 @@ export function DestinationDetailPage() {
   const [nearbyExperiences, setNearbyExperiences] = useState<ProviderOffering[]>([]);
   const [nearbyStays, setNearbyStays] = useState<ProviderOffering[]>([]);
 
+  // Active Government Tourism Advisories
+  const [activeAlerts, setActiveAlerts] = useState<TourismAlert[]>([]);
+
   // Add-to-trip modal
   const [showAddToTrip, setShowAddToTrip] = useState(false);
 
@@ -213,6 +219,27 @@ export function DestinationDetailPage() {
     void load();
     return () => { alive = false; };
   }, [slug]);
+
+  // ── Load active government travel advisories ─────────────────────────────
+  useEffect(() => {
+    if (!destination) return;
+    let alive = true;
+
+    async function loadAlerts() {
+      try {
+        const alertsData = await getActivePublicAlerts({
+          district: destination!.district,
+          destinationId: destination!.id,
+        });
+        if (alive) setActiveAlerts(alertsData);
+      } catch {
+        /* gracefully ignore alert loading error */
+      }
+    }
+
+    void loadAlerts();
+    return () => { alive = false; };
+  }, [destination]);
 
   // ── Load reviews ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -387,6 +414,45 @@ export function DestinationDetailPage() {
           )}
           <Badge variant="warning">{getDestinationStatusLabel(destination.status)}</Badge>
         </div>
+
+        {/* ── Active Government Tourism Advisories ─────────────────────────── */}
+        {activeAlerts.length > 0 && (
+          <div className="space-y-3">
+            {activeAlerts.map((alert) => (
+              <div
+                key={alert.id}
+                className={`rounded-2xl border p-4 sm:p-5 flex items-start gap-3.5 shadow-xs ${
+                  alert.severity === 'critical'
+                    ? 'border-red-300 bg-red-50 text-red-950'
+                    : alert.severity === 'warning'
+                      ? 'border-amber-300 bg-amber-50 text-amber-950'
+                      : 'border-blue-200 bg-blue-50 text-blue-950'
+                }`}
+              >
+                <AlertTriangle
+                  className={`h-5 w-5 shrink-0 mt-0.5 ${
+                    alert.severity === 'critical' ? 'text-red-700' : 'text-amber-700'
+                  }`}
+                />
+                <div className="space-y-1 text-xs">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold text-sm">{alert.title}</span>
+                    <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                      {alert.severity} Advisory
+                    </span>
+                  </div>
+                  <p className="leading-relaxed opacity-90">{alert.description}</p>
+                  <div className="flex flex-wrap items-center gap-4 text-[11px] opacity-75 pt-1">
+                    <span>
+                      Issued by: <strong>Jharkhand Tourism Administration</strong>
+                    </span>
+                    {alert.end_date && <span>Valid until: {alert.end_date}</span>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Hero ───────────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-3xl shadow-2xl">

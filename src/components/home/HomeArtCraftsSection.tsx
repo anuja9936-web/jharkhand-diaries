@@ -108,7 +108,7 @@ export function HomeArtCraftsSection() {
         {CRAFTS.map((craft) => (
           <article
             key={craft.id}
-            className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-ink-200/80 bg-white p-6 shadow-xs transition-all duration-300 hover:-translate-y-1.5 hover:border-amber-400 hover:shadow-xl"
+            className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-ink-200/90 bg-[#FFFDF9] p-6 shadow-xs transition-all duration-300 hover:-translate-y-1.5 hover:border-amber-400 hover:shadow-xl"
           >
             <div className="space-y-3">
               {/* Header Badges */}

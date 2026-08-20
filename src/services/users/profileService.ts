@@ -76,6 +76,9 @@ export async function updateProfile(
       | 'provider_categories'
       | 'profile_image_url'
       | 'cover_image_url'
+      | 'verification_status'
+      | 'verification_details'
+      | 'verification_submitted_at'
     >
   >
 ): Promise<Profile> {

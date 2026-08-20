@@ -61,7 +61,7 @@ export function HomePlannerSection() {
 
   return (
     <section id="trip-planner" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <div className="rounded-3xl border border-ink-200/80 bg-white p-8 sm:p-12 shadow-xl">
+      <div className="rounded-3xl border border-ink-200/90 bg-[#FFFDF9] p-8 sm:p-12 shadow-xl">
         {/* Section Header */}
         <div className="text-center space-y-3 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 rounded-full bg-clay-100 px-3.5 py-1 text-xs font-bold text-clay-800">
@@ -184,7 +184,7 @@ export function HomePlannerSection() {
                     'rounded-full px-4 py-2 text-xs font-bold transition-all',
                     selectedInterests.includes(interest)
                       ? 'bg-amber-400 text-ink-950 shadow-xs ring-2 ring-amber-400/50'
-                      : 'border border-ink-200 bg-white text-ink-700 hover:bg-sand',
+                      : 'border border-ink-200 bg-[#FFFDF9] text-ink-800 hover:bg-sand',
                   ].join(' ')}
                 >
                   {interest}
@@ -205,17 +205,17 @@ export function HomePlannerSection() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="p-3 bg-white rounded-xl border border-ink-100 space-y-1">
+              <div className="p-3 bg-[#FFFDF9] rounded-xl border border-ink-100 space-y-1">
                 <span className="font-bold text-clay-700">Day 1-2:</span>
                 <p className="font-semibold text-ink-900">Patratu Valley &amp; Dassam Falls</p>
                 <p className="text-[11px] text-ink-500">Scenic drive, lakeside camping &amp; cascade walk</p>
               </div>
-              <div className="p-3 bg-white rounded-xl border border-ink-100 space-y-1">
+              <div className="p-3 bg-[#FFFDF9] rounded-xl border border-ink-100 space-y-1">
                 <span className="font-bold text-clay-700">Day 3-4:</span>
                 <p className="font-semibold text-ink-900">Netarhat Misty Pines &amp; Sunrises</p>
                 <p className="text-[11px] text-ink-500">Highland eco-lodge &amp; tribal handicraft studio</p>
               </div>
-              <div className="p-3 bg-white rounded-xl border border-ink-100 space-y-1">
+              <div className="p-3 bg-[#FFFDF9] rounded-xl border border-ink-100 space-y-1">
                 <span className="font-bold text-clay-700">Day 5+:</span>
                 <p className="font-semibold text-ink-900">Betla Tiger Reserve Safari</p>
                 <p className="text-[11px] text-ink-500">Forest tracking &amp; 16th-century Chero forts</p>

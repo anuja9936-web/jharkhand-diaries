@@ -119,9 +119,11 @@ export function HeroCarousel() {
           </div>
         ))}
 
-        {/* Sophisticated Dark Gradient Overlays for High Legibility */}
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/50 to-ink-950/70" />
-        <div className="absolute inset-0 bg-gradient-to-r from-ink-950/80 via-transparent to-ink-950/80" />
+        {/* Localized text-area gradient ONLY — image stays bright everywhere else */}
+        {/* Bottom band: helps lower badge/controls readability */}
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black/55 via-black/20 to-transparent pointer-events-none" />
+        {/* Left edge: subtle gradient for center text block on darker compositions */}
+        <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-black/30 via-black/10 to-transparent pointer-events-none" />
       </div>
 
       {/* Spacer */}

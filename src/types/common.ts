@@ -18,6 +18,9 @@ export interface Profile {
   provider_categories: string[] | null;
   profile_image_url: string | null;
   cover_image_url: string | null;
+  verification_status?: 'unverified' | 'under_review' | 'verified' | 'rejected' | null;
+  verification_details?: Record<string, unknown> | null;
+  verification_submitted_at?: string | null;
   created_at: string;
   updated_at: string;
 }

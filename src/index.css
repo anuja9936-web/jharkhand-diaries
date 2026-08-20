@@ -5,50 +5,71 @@
 :root {
   color-scheme: light;
   font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(239, 123, 58, 0.12), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(51, 114, 70, 0.1), transparent 28%),
-    #f7f2ea;
-  color: #1e1712;
+  background-color: #F7F3EA;
+  color: #27342C;
 }
 
 html {
   scroll-behavior: smooth;
+  background-color: #F7F3EA;
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(244, 235, 223, 0.95)),
-    radial-gradient(circle at 15% 15%, rgba(239, 123, 58, 0.12), transparent 25%),
-    radial-gradient(circle at 85% 0%, rgba(51, 114, 70, 0.1), transparent 28%);
-  color: #1e1712;
+  background-color: #F7F3EA;
+  /* Very subtle warm radial vignette — barely perceptible */
+  background-image:
+    radial-gradient(circle at 15% 15%, rgba(171, 63, 11, 0.03), transparent 32%),
+    radial-gradient(circle at 85% 5%,  rgba(41, 112, 72, 0.03), transparent 32%);
+  color: #27342C;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   min-height: 100vh;
+  background-color: #F7F3EA;
+}
+
+/* Heading defaults — deep forest-charcoal */
+h1, h2, h3, h4, h5, h6 {
+  color: #27342C;
+  letter-spacing: -0.015em;
+}
+
+p, span, li, a {
+  color: inherit;
 }
 
 ::selection {
-  background: rgba(239, 123, 58, 0.2);
+  background: rgba(171, 63, 11, 0.20);
+  color: #27342C;
 }
 
+/* Utility surface classes */
 .pattern-surface {
+  background-color: #F7F3EA;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.88)),
-    radial-gradient(circle at 1px 1px, rgba(111, 95, 80, 0.08) 1px, transparent 0);
+    linear-gradient(#F7F3EA, #F7F3EA),
+    radial-gradient(circle at 1px 1px, rgba(75, 64, 51, 0.06) 1px, transparent 0);
   background-size: auto, 20px 20px;
 }
 
 .soft-grid {
+  background-color: #F7F3EA;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.92)),
-    linear-gradient(to right, rgba(111, 95, 80, 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(111, 95, 80, 0.08) 1px, transparent 1px);
-  background-size: auto, 22px 22px, 22px 22px;
+    linear-gradient(#F7F3EA, #F7F3EA),
+    linear-gradient(to right, rgba(75, 64, 51, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(75, 64, 51, 0.05) 1px, transparent 1px);
+  background-size: auto, 24px 24px, 24px 24px;
 }
+
+/* Section-level background helpers */
+.section-sage   { background-color: #F1F5EE; }
+.section-clay   { background-color: #F8F1EA; }
+.section-ivory  { background-color: #F7F3EA; }
 
 a {
   color: inherit;
@@ -63,5 +84,5 @@ textarea {
 }
 
 .bg-radial-vignette {
-  background: radial-gradient(circle at center, transparent 25%, rgba(15, 10, 8, 0.45) 70%, rgba(15, 10, 8, 0.8) 100%);
+  background: radial-gradient(circle at center, transparent 25%, rgba(22, 29, 25, 0.45) 70%, rgba(22, 29, 25, 0.80) 100%);
 }

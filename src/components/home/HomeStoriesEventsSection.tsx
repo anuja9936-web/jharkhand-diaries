@@ -106,7 +106,7 @@ export function HomeStoriesEventsSection() {
           {BLOGS.map((blog) => (
             <article
               key={blog.id}
-              className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-ink-200/80 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
+              className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-ink-200/90 bg-[#FFFDF9] shadow-xs transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
             >
               <div>
                 <div className="relative h-56 w-full overflow-hidden bg-ink-100">
@@ -178,7 +178,7 @@ export function HomeStoriesEventsSection() {
           {EVENTS.map((ev) => (
             <div
               key={ev.id}
-              className="rounded-2xl bg-white p-6 border border-ink-200 shadow-xs space-y-3 hover:border-clay-400 transition"
+              className="rounded-2xl bg-[#FFFDF9] p-6 border border-ink-200/90 shadow-xs space-y-3 hover:border-clay-400 transition"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="rounded-full bg-clay-100 px-3 py-0.5 text-xs font-bold text-clay-800">

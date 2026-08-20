@@ -134,7 +134,7 @@ export function HomeDiscoverSection() {
           <Link
             key={pillar.id}
             to={pillar.href}
-            className="group relative overflow-hidden rounded-3xl border border-ink-200/80 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between"
+            className="group relative overflow-hidden rounded-3xl border border-ink-200/90 bg-[#FFFDF9] shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between"
           >
             {/* Image Aspect Container */}
             <div className="relative h-44 w-full overflow-hidden bg-ink-100">

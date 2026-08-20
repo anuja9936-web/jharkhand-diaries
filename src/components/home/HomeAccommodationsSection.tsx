@@ -88,7 +88,7 @@ export function HomeAccommodationsSection() {
           {STAY_OPTIONS.map((stay) => (
             <article
               key={stay.id}
-              className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-ink-200/80 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
+              className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-ink-200/90 bg-[#FFFDF9] shadow-xs transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
             >
               <div>
                 {/* Image */}

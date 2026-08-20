@@ -75,7 +75,7 @@ export function HomeResponsiblePartnerSection() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-xl mx-auto">
           {/* Provider Card */}
-          <div className="p-6 rounded-2xl border border-ink-200/80 bg-white shadow-xs hover:border-clay-400 transition-all flex flex-col justify-between text-left space-y-4">
+          <div className="p-6 rounded-2xl border border-ink-200/90 bg-[#FFFDF9] shadow-xs hover:border-clay-400 transition-all flex flex-col justify-between text-left space-y-4">
             <div className="space-y-2">
               <div className="h-10 w-10 rounded-xl bg-clay-100 p-2.5 text-clay-700">
                 <Store className="h-full w-full" />
@@ -95,7 +95,7 @@ export function HomeResponsiblePartnerSection() {
           </div>
 
           {/* Admin / Government Card */}
-          <div className="p-6 rounded-2xl border border-ink-200/80 bg-white shadow-xs hover:border-forest-400 transition-all flex flex-col justify-between text-left space-y-4">
+          <div className="p-6 rounded-2xl border border-ink-200/90 bg-[#FFFDF9] shadow-xs hover:border-forest-400 transition-all flex flex-col justify-between text-left space-y-4">
             <div className="space-y-2">
               <div className="h-10 w-10 rounded-xl bg-forest-100 p-2.5 text-forest-700">
                 <Shield className="h-full w-full" />
@@ -106,10 +106,10 @@ export function HomeResponsiblePartnerSection() {
               </p>
             </div>
             <Link
-              to="/admin"
+              to="/auth/government"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-forest-700 hover:text-forest-800 transition-colors"
             >
-              <span>Access Government Portal</span>
+              <span>Access Government Login</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>

@@ -12,7 +12,8 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    const redirectPath = location.pathname.startsWith('/admin') ? '/auth/government' : '/login';
+    return <Navigate to={redirectPath} replace state={{ from: location.pathname }} />;
   }
 
   return children;

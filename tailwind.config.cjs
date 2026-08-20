@@ -5,55 +5,79 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Primary text colour: deep forest-charcoal (NOT pure black)
         ink: {
-          50: '#f7f7f5',
-          100: '#eceae6',
-          200: '#d8d2c8',
-          300: '#bcb2a3',
-          400: '#958674',
-          500: '#6f5f50',
-          600: '#56463a',
-          700: '#403228',
-          800: '#2d231c',
-          900: '#1e1712',
+          50:  '#F7F3EA', // primary page background — warm ivory paper
+          100: '#EFE9D8', // subtle warm section alternate
+          200: '#DDD3C0', // warm border
+          300: '#BFB09A',
+          400: '#8A7A65',
+          500: '#6B5C4A', // muted secondary text (still readable)
+          600: '#4F4033', // medium dark body text
+          700: '#3A2F25', // strong body text
+          800: '#2D231A',
+          900: '#27342C', // PRIMARY TEXT: deep forest-charcoal
+          950: '#161D19',
         },
         clay: {
-          50: '#fff3ec',
-          100: '#ffe1d1',
-          200: '#ffc29b',
-          300: '#f99c64',
-          400: '#ef7b3a',
-          500: '#d75d1c',
-          600: '#b84516',
-          700: '#943411',
-          800: '#74290d',
-          900: '#5b200b',
+          50:  '#FFF5EE',
+          100: '#FFE5D4',
+          200: '#FFC7A3',
+          300: '#F89E69',
+          400: '#E8732E',
+          500: '#CF5615',
+          600: '#AB3F0B',
+          700: '#8C3108',
+          800: '#6E2505',
+          900: '#521B03',
         },
         forest: {
-          50: '#edf7ef',
-          100: '#d6ebd9',
-          200: '#addeb4',
-          300: '#7fc68a',
-          400: '#4f9f61',
-          500: '#337246',
-          600: '#27593a',
-          700: '#20472f',
-          800: '#1c3926',
-          900: '#172f1f',
+          50:  '#EDF5F0',
+          100: '#D3E9DA',
+          200: '#A8D3B6',
+          300: '#72B68A',
+          400: '#3F9260',
+          500: '#297048',
+          600: '#1F5537',
+          700: '#174029',
+          800: '#102E1D',
+          900: '#0C2016', // deep forest green — primary CTA
+          950: '#071410',
         },
-        sand: '#f4ebdf',
+        // Semantic pastel section backgrounds
+        sage: {
+          50:  '#F1F5EE', // very pale sage — section alternate
+          100: '#E2EBD9',
+          200: '#C5D7B5',
+        },
+        warmclay: {
+          50:  '#F8F1EA', // very pale clay — section alternate
+          100: '#EFE0CC',
+        },
+        // Aliases
+        sand:   '#EFE9D8',
+        ivory:  '#F7F3EA',
+        cream:  '#FFFDF8',
+        surface: {
+          DEFAULT: '#FFFDF8',
+          warm:    '#F5EFE2',
+          subtle:  '#F1EDE4',
+        },
       },
       boxShadow: {
-        glow: '0 24px 80px -32px rgba(55, 41, 28, 0.45)',
+        glow:        '0 24px 80px -32px rgba(39, 52, 44, 0.20)',
+        card:        '0 8px 24px -12px rgba(39, 52, 44, 0.08)',
+        'card-hover':'0 16px 32px -12px rgba(39, 52, 44, 0.12)',
+        xs:          '0 1px 4px rgba(39, 52, 44, 0.06)',
       },
       backgroundImage: {
         'jh-pattern':
-          'radial-gradient(circle at 20% 20%, rgba(239, 123, 58, 0.25) 0, transparent 24%), radial-gradient(circle at 80% 0%, rgba(51, 114, 70, 0.22) 0, transparent 28%), linear-gradient(135deg, rgba(255,255,255,0.8), rgba(244,235,223,0.95))',
+          'radial-gradient(circle at 20% 20%, rgba(171, 63, 11, 0.06) 0, transparent 24%), radial-gradient(circle at 80% 0%, rgba(41, 112, 72, 0.06) 0, transparent 28%), linear-gradient(135deg, #F7F3EA, #EFE9D8)',
       },
       fontFamily: {
         display: ['"Playfair Display"', 'Georgia', 'Times New Roman', 'serif'],
-        body: ['"Plus Jakarta Sans"', 'Trebuchet MS', 'Segoe UI', 'sans-serif'],
-        sans: ['"Plus Jakarta Sans"', 'Trebuchet MS', 'Segoe UI', 'sans-serif'],
+        body:    ['"Plus Jakarta Sans"', 'Trebuchet MS', 'Segoe UI', 'sans-serif'],
+        sans:    ['"Plus Jakarta Sans"', 'Trebuchet MS', 'Segoe UI', 'sans-serif'],
       },
     },
   },

@@ -16,13 +16,15 @@ export const publicNavItems: NavItem[] = [
   { label: 'Map', href: '/map', icon: MapPin },
   { label: 'Experiences', href: '/experiences', icon: Compass },
   { label: 'Accommodations', href: '/accommodations', icon: Store },
+  { label: 'Tours', href: '/tours', icon: Compass },
+  { label: 'Transport', href: '/transport', icon: Store },
   { label: 'Marketplace', href: '/marketplace', icon: Store },
   { label: 'Feedback', href: '/feedback', icon: MessageSquare },
 ];
 
 export const partnerNavItems = [
   { label: 'Service Provider', href: '/provider', role: 'provider' as const },
-  { label: 'Government', href: '/admin', role: 'admin' as const },
+  { label: 'Government Login', href: '/auth/government', role: 'admin' as const },
 ];
 
 export const touristNavItems: NavItem[] = [

@@ -1,5 +1,7 @@
 import { supabase } from '../../lib/supabase';
 import type {
+  ProviderCapability,
+  ProviderNotification,
   ProviderOffering,
   ProviderOfferingKind,
   ProviderOfferingStatus,
@@ -7,17 +9,22 @@ import type {
   ProviderRequest,
   ProviderRequestStatus,
   ProviderRequestType,
+  ProviderVerificationStatus,
 } from '../../types/provider';
 import { JHARKHAND_ACCOMMODATIONS } from '../../constants/accommodationsData';
 import {
   JHARKHAND_MARKETPLACE_PRODUCTS,
   JHARKHAND_MARKETPLACE_EXPERIENCES,
+  JHARKHAND_CURATED_TOURS,
+  JHARKHAND_CURATED_TRANSPORT,
 } from '../../constants/marketplaceData';
 
 const ALL_CURATED_OFFERINGS: ProviderOffering[] = [
   ...JHARKHAND_ACCOMMODATIONS,
   ...JHARKHAND_MARKETPLACE_PRODUCTS,
   ...JHARKHAND_MARKETPLACE_EXPERIENCES,
+  ...JHARKHAND_CURATED_TOURS,
+  ...JHARKHAND_CURATED_TRANSPORT,
 ];
 
 function getClient() {
@@ -28,7 +35,7 @@ function getClient() {
   return supabase;
 }
 
-async function getCurrentUserId() {
+export async function getCurrentProviderUserId(): Promise<string> {
   const client = getClient();
   const { data, error } = await client.auth.getUser();
 
@@ -84,9 +91,29 @@ export interface ProviderRequestWithOffering extends ProviderRequest {
   offering?: Pick<ProviderOffering, 'id' | 'kind' | 'name' | 'slug' | 'cover_image' | 'district'> | null;
 }
 
+export interface ProviderAnalyticsSummary {
+  totalOfferings: number;
+  publishedOfferings: number;
+  draftOfferings: number;
+  totalsByKind: Record<ProviderOfferingKind, number>;
+  totalRequests: number;
+  pendingRequests: number;
+  acceptedRequests: number;
+  rejectedRequests: number;
+  completedRequests: number;
+  totalReviews: number;
+  averageRating: number | null;
+  profileCompletion: number;
+  verificationStatus: ProviderVerificationStatus;
+}
+
+// ---------------------------------------------------------------------------
+// Provider Offerings CRUD
+// ---------------------------------------------------------------------------
+
 export async function getMyProviderOfferings(kind?: ProviderOfferingKind): Promise<ProviderOffering[]> {
   const client = getClient();
-  const userId = await getCurrentUserId();
+  const userId = await getCurrentProviderUserId();
 
   let query = client
     .from('provider_offerings')
@@ -141,7 +168,7 @@ export async function getPublicProviderOfferings(kind?: ProviderOfferingKind): P
 
 export async function getProviderOfferingById(offeringId: string): Promise<ProviderOffering | null> {
   const client = getClient();
-  const userId = await getCurrentUserId();
+  const userId = await getCurrentProviderUserId();
 
   const { data, error } = await client
     .from('provider_offerings')
@@ -198,7 +225,7 @@ export async function getPublicProviderOfferingById(offeringId: string): Promise
       return data as ProviderOffering;
     }
   } catch {
-    // ID might be a non-uuid slug or mock id
+    // Fallback
   }
 
   const found = ALL_CURATED_OFFERINGS.find((o) => o.id === offeringId || o.slug === offeringId);
@@ -265,7 +292,7 @@ function buildOfferingPayload(input: ProviderOfferingInput, providerId: string) 
 
 export async function createProviderOffering(input: ProviderOfferingInput): Promise<ProviderOffering> {
   const client = getClient();
-  const userId = await getCurrentUserId();
+  const userId = await getCurrentProviderUserId();
 
   const { data, error } = await client
     .from('provider_offerings')
@@ -285,7 +312,7 @@ export async function updateProviderOffering(
   input: ProviderOfferingInput
 ): Promise<ProviderOffering> {
   const client = getClient();
-  const userId = await getCurrentUserId();
+  const userId = await getCurrentProviderUserId();
 
   const { data, error } = await client
     .from('provider_offerings')
@@ -304,18 +331,26 @@ export async function updateProviderOffering(
 
 export async function deleteProviderOffering(offeringId: string): Promise<void> {
   const client = getClient();
-  const userId = await getCurrentUserId();
+  const userId = await getCurrentProviderUserId();
 
-  const { error } = await client.from('provider_offerings').delete().eq('id', offeringId).eq('provider_id', userId);
+  const { error } = await client
+    .from('provider_offerings')
+    .delete()
+    .eq('id', offeringId)
+    .eq('provider_id', userId);
 
   if (error) {
     throw error;
   }
 }
 
+// ---------------------------------------------------------------------------
+// Provider Requests & Bookings
+// ---------------------------------------------------------------------------
+
 export async function getMyProviderRequests(): Promise<ProviderRequestWithOffering[]> {
   const client = getClient();
-  const userId = await getCurrentUserId();
+  const userId = await getCurrentProviderUserId();
 
   const { data, error } = await client
     .from('provider_requests')
@@ -330,9 +365,27 @@ export async function getMyProviderRequests(): Promise<ProviderRequestWithOfferi
   return (data ?? []) as ProviderRequestWithOffering[];
 }
 
+export async function getProviderRequestById(requestId: string): Promise<ProviderRequestWithOffering | null> {
+  const client = getClient();
+  const userId = await getCurrentProviderUserId();
+
+  const { data, error } = await client
+    .from('provider_requests')
+    .select('*, offering:provider_offerings(id, kind, name, slug, cover_image, district)')
+    .eq('id', requestId)
+    .eq('provider_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return (data as ProviderRequestWithOffering | null) ?? null;
+}
+
 export async function createProviderRequest(input: ProviderRequestInput): Promise<ProviderRequest> {
   const client = getClient();
-  const touristId = await getCurrentUserId();
+  const touristId = await getCurrentProviderUserId().catch(() => null);
 
   const { data, error } = await client
     .from('provider_requests')
@@ -364,7 +417,7 @@ export async function updateProviderRequestStatus(
   status: ProviderRequestStatus
 ): Promise<ProviderRequest> {
   const client = getClient();
-  const userId = await getCurrentUserId();
+  const userId = await getCurrentProviderUserId();
 
   const { data, error } = await client
     .from('provider_requests')
@@ -381,14 +434,118 @@ export async function updateProviderRequestStatus(
   return data as ProviderRequest;
 }
 
+// ---------------------------------------------------------------------------
+// Provider Profile & Capabilities
+// ---------------------------------------------------------------------------
+
 export async function getPublicProviderProfile(providerId: string): Promise<ProviderPublicProfile | null> {
   const client = getClient();
   const { data, error } = await client.rpc('get_public_provider_profile', { provider_user_id: providerId });
 
   if (error) {
-    throw error;
+    // If RPC is missing verification columns in older db, fallback to direct select
+    const { data: profileData, error: profileErr } = await client
+      .from('profiles')
+      .select('id, full_name, business_name, owner_name, description, phone, avatar_url, cover_image_url, address, district, state, website_url, provider_categories, verification_status, created_at')
+      .eq('id', providerId)
+      .maybeSingle();
+
+    if (profileErr || !profileData) {
+      return null;
+    }
+    return profileData as ProviderPublicProfile;
   }
 
   const rows = (data ?? []) as ProviderPublicProfile[];
   return rows[0] ?? null;
+}
+
+export async function updateProviderCapabilities(capabilities: ProviderCapability[]): Promise<void> {
+  const client = getClient();
+  const userId = await getCurrentProviderUserId();
+
+  const { error } = await client
+    .from('profiles')
+    .update({ provider_categories: capabilities })
+    .eq('id', userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function submitProviderVerification(
+  verificationDetails: Record<string, unknown>
+): Promise<void> {
+  const client = getClient();
+  const userId = await getCurrentProviderUserId();
+
+  const { error } = await client
+    .from('profiles')
+    .update({
+      verification_status: 'under_review',
+      verification_details: verificationDetails,
+      verification_submitted_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+export async function getMyProviderNotifications(): Promise<ProviderNotification[]> {
+  try {
+    const client = getClient();
+    const userId = await getCurrentProviderUserId();
+
+    const { data, error } = await client
+      .from('provider_notifications')
+      .select('*')
+      .eq('provider_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (error) {
+      return [];
+    }
+
+    return (data ?? []) as ProviderNotification[];
+  } catch {
+    return [];
+  }
+}
+
+export async function markNotificationRead(notificationId: string): Promise<void> {
+  try {
+    const client = getClient();
+    const userId = await getCurrentProviderUserId();
+
+    await client
+      .from('provider_notifications')
+      .update({ read: true })
+      .eq('id', notificationId)
+      .eq('provider_id', userId);
+  } catch {
+    // Non-fatal
+  }
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  try {
+    const client = getClient();
+    const userId = await getCurrentProviderUserId();
+
+    await client
+      .from('provider_notifications')
+      .update({ read: true })
+      .eq('provider_id', userId)
+      .eq('read', false);
+  } catch {
+    // Non-fatal
+  }
 }

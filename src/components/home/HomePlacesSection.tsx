@@ -131,7 +131,7 @@ export function HomePlacesSection() {
         {displayList.map((destination) => (
           <article
             key={destination.id ?? destination.slug}
-            className="group relative flex flex-col overflow-hidden rounded-3xl border border-ink-200/80 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
+            className="group relative flex flex-col overflow-hidden rounded-3xl border border-ink-200/90 bg-[#FFFDF9] shadow-xs transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
           >
             {/* Image Container */}
             <div className="relative h-64 w-full overflow-hidden bg-ink-100">
