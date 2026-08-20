@@ -17,17 +17,18 @@ export function AIAssistantModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userGateway, setUserGateway] = useState<string>('Ranchi');
   const [messages, setMessages] = useState<AIMessage[]>([
     {
       id: 'welcome',
       role: 'assistant',
-      content: `**Johar!** I am your **Jharkhand Diaries AI Travel Assistant** ✦\n\nI can help you explore 24 districts, find waterfalls, book authentic homestays, discover Sohrai artisan crafts, and craft day-by-day itineraries.`,
+      content: `**Johar!** I am your **Jharkhand Diaries AI Travel Assistant** ✦\n\nI can help you explore 24 districts, plan short 2–3 hour getaways, find waterfalls, discover Sohrai art, and curate personalized multi-day circuits.`,
       timestamp: new Date().toISOString(),
       quickActions: [
+        { label: '🚗 3-Hour Trip from Ranchi', action: 'ask', payload: 'Places near Ranchi for a 3 hour trip' },
         { label: '🌊 Top Waterfalls', action: 'ask', payload: 'What are the top waterfalls in Jharkhand?' },
-        { label: '🗓️ 3-Day Trip Plan', action: 'ask', payload: 'Give me a 3-day itinerary for Jharkhand' },
-        { label: '🎨 Tribal Crafts & Art', action: 'ask', payload: 'Tell me about tribal crafts and Sohrai art' },
-        { label: '🐅 Betla & Wildlife', action: 'ask', payload: 'Where can I see wildlife in Jharkhand?' },
+        { label: '🗓️ 3-Day Plan under ₹10,000', action: 'ask', payload: 'Plan a 3 day trip for 2 people under ₹10000' },
+        { label: '🎨 Tribal Culture & Art', action: 'ask', payload: 'I want tribal culture and Sohrai art' },
       ],
     },
   ]);
@@ -57,7 +58,7 @@ export function AIAssistantModal() {
     setIsLoading(true);
 
     try {
-      const response = await generateAITravelResponse(text, messages);
+      const response = await generateAITravelResponse(text, messages, userGateway);
       setMessages((prev) => [...prev, response]);
     } catch (err) {
       console.error('[AI] Assistant error', err);
@@ -111,14 +112,14 @@ export function AIAssistantModal() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end sm:p-6 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="flex flex-col h-[85vh] sm:h-[650px] w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl bg-[#FAF8F5] shadow-2xl border border-ink-200/90 overflow-hidden font-sans">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 bg-white border-b border-ink-200/80">
+            <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-ink-200/80">
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-2xl bg-forest-900 p-2 text-amber-400 flex items-center justify-center shadow-sm">
                   <Bot className="h-5 w-5" />
                 </div>
                 <div>
                   <h3 className="font-display font-bold text-ink-950 text-sm flex items-center gap-1.5">
-                    <span>Johar AI Travel Assistant</span>
+                    <span>Johar AI Assistant</span>
                     <span className="rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] px-1.5 py-0.2 font-semibold">
                       Smart GIS
                     </span>
@@ -148,6 +149,30 @@ export function AIAssistantModal() {
                 >
                   <X className="h-5 w-5" />
                 </button>
+              </div>
+            </div>
+
+            {/* Gateway selection strip */}
+            <div className="bg-sand/40 px-4 py-1.5 border-b border-ink-100 flex items-center justify-between text-[11px]">
+              <span className="text-ink-600 font-medium flex items-center gap-1">
+                <MapPin className="h-3 w-3 text-clay-700" />
+                <span>Starting from:</span>
+              </span>
+              <div className="flex items-center gap-1">
+                {['Ranchi', 'Jamshedpur', 'Deoghar', 'Dhanbad'].map((city) => (
+                  <button
+                    key={city}
+                    type="button"
+                    onClick={() => setUserGateway(city)}
+                    className={`px-2 py-0.5 rounded-md font-bold transition-all text-[10px] ${
+                      userGateway === city
+                        ? 'bg-forest-900 text-white'
+                        : 'bg-white text-ink-700 hover:bg-sand border border-ink-200/60'
+                    }`}
+                  >
+                    {city}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -313,6 +338,13 @@ export function AIAssistantModal() {
                         ))}
                       </div>
                     )}
+
+                    {/* Model Source Attribution */}
+                    {msg.role === 'assistant' && msg.modelUsed && (
+                      <div className="pt-1 text-[9px] text-ink-400 text-right">
+                        <span>✦ {msg.modelUsed}</span>
+                      </div>
+                    )}
                   </div>
 
                   {msg.role === 'user' && (
@@ -344,7 +376,7 @@ export function AIAssistantModal() {
               >
                 <Input
                   type="text"
-                  placeholder="Ask about waterfalls, 3-day plans, Netarhat, Sohrai art..."
+                  placeholder="Ask for 3-hour trips, waterfalls near Ranchi, Betla safari..."
                   value={inputQuery}
                   onChange={(e) => setInputQuery(e.target.value)}
                   className="text-xs bg-ink-50 border-ink-200 focus:border-forest-600 h-10"

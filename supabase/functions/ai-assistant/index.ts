@@ -10,6 +10,7 @@ interface ChatRequestBody {
   action: 'chat' | 'itinerary' | 'recommendations' | 'provider_writer' | 'admin_insights';
   messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   prompt?: string;
+  userLocation?: string;
   context?: {
     destinations?: Array<{ name: string; slug: string; district: string; category: string; description?: string }>;
     offerings?: Array<{ name: string; kind: string; district: string; price?: number }>;
@@ -68,19 +69,29 @@ Deno.serve(async (req) => {
     // System prompt grounding
     const baseSystemPrompt = `You are "Johar AI — Jharkhand Tourism Assistant", the official AI travel intelligence guide for the state of Jharkhand, India (celebrated for its 24 districts, waterfalls, Betla National Park, Dalma Wildlife Sanctuary, Netarhat hill station, Patratu Valley, Baidyanath Jyotirlinga Dham, Sohrai GI-tagged mural art, and rich tribal heritage).
 
-CRITICAL GROUNDING RULES:
-1. Ground your knowledge ONLY in authentic Jharkhand geography, 24 districts, culture, and provided context.
-2. NEVER hallucinate non-existent hotels, imaginary prices, or fake destinations.
-3. If an inquiry asks about places outside Jharkhand or unavailable services, politely clarify and redirect to Jharkhand destinations.
-4. Keep a warm, respectful, and enthusiastic tone starting with or honoring the traditional Jharkhandi greeting "Johar!".
-5. Always highlight eco-tourism guidelines and respect for indigenous tribal traditions (Sarna Sthal, Sacred Groves).
-6. Mention active government safety advisories if relevant.`;
+CRITICAL CONVERSATIONAL & GROUNDING RULES:
+1. NATURAL-LANGUAGE INTENT HANDLING:
+   - Accurately understand travel duration, starting locations, group styles, budgets, and themes from user queries.
+   - If the user asks for short-duration trips (e.g. "where can I go for a 3 hour journey", "half day trip", "places near me") and their starting location is NOT specified or known from conversation context, ask a concise, friendly follow-up question:
+     "Sure! I can suggest a few great short trips in Jharkhand. Where will you be starting from — Ranchi, Jamshedpur, Deoghar, Dhanbad, or another location?"
+   - If the starting location is known (e.g. "from Ranchi", "near Jamshedpur"), directly recommend realistic excursions within that travel duration (approximate travel time & distance, e.g. "~45 mins drive / 35 km").
+   - If the user asks about waterfalls, tribal arts, pilgrimage, or wildlife, recommend authentic destinations matching those categories from the dataset.
+2. GROUNDING & ANTI-HALLUCINATION:
+   - Ground your recommendations in authentic Jharkhand geography across its 24 districts.
+   - Use only verified destinations, stays, and experiences provided in the context whenever available.
+   - If travel times are approximate, explicitly state that they are approximate. Never invent fake transport or non-existent hotels.
+   - If an inquiry asks about places outside Jharkhand, politely clarify and offer Jharkhand counterparts.
+3. TONE & CULTURAL RESPECT:
+   - Warm, knowledgeable, and hospitable with the traditional Jharkhandi greeting "Johar!".
+   - Emphasize responsible eco-tourism and cultural respect for tribal heritage and sacred groves (Sarna Sthal).
+   - Mention active government safety advisories if applicable.`;
 
     let messagesToSend: Array<{ role: string; content: string }> = [];
     let responseFormat: Record<string, string> | undefined = undefined;
 
     if (action === 'chat') {
       const userMessages = body.messages || [{ role: 'user', content: body.prompt || 'Johar!' }];
+      const locationContext = body.userLocation ? `\nUser's Current Location/Gateway: ${body.userLocation}` : '';
       const contextSummary = body.context
         ? `\n\nAVAILABLE VERIFIED CONTEXT:\nDestinations: ${JSON.stringify(body.context.destinations || [])}\nOfferings & Stays: ${JSON.stringify(body.context.offerings || [])}\nActive Safety Alerts: ${JSON.stringify(body.context.alerts || [])}`
         : '';
@@ -88,7 +99,7 @@ CRITICAL GROUNDING RULES:
       messagesToSend = [
         {
           role: 'system',
-          content: `${baseSystemPrompt}\n\nYou are having a conversational travel discovery chat. Provide rich, insightful, formatted markdown advice with bullet points for attractions, cultural context, cuisine (Dhuska, Rugra, Arsa), and travel tips.${contextSummary}`,
+          content: `${baseSystemPrompt}\n\nYou are having a conversational travel discovery chat. Provide rich, formatted markdown advice with bullet points for attractions, travel time estimates, cultural notes, and local cuisine.${locationContext}${contextSummary}`,
         },
         ...userMessages,
       ];

@@ -128,39 +128,70 @@ async function callGroqEdgeFunction(payload: {
   action: 'chat' | 'itinerary' | 'recommendations' | 'provider_writer' | 'admin_insights';
   messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   prompt?: string;
+  userLocation?: string;
   context?: Record<string, unknown>;
 }): Promise<{ success: boolean; content: string; model?: string } | null> {
-  if (!isSupabaseConfigured || !supabase) {
-    return null;
+  const g = typeof globalThis !== 'undefined' ? (globalThis as Record<string, any>) : {};
+  const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (g.process?.env || {});
+  const supabaseUrl = (env.VITE_SUPABASE_URL || '') as string;
+  const supabaseAnonKey = (env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || '') as string;
+
+  // 1. Try via Supabase SDK if configured
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-assistant', {
+        body: payload,
+      });
+
+      if (!error && data?.success && data?.content) {
+        return {
+          success: true,
+          content: data.content,
+          model: data.model,
+        };
+      }
+      if (error) {
+        console.info('[AI Service] supabase.functions.invoke returned:', error.message);
+      }
+    } catch (invokeErr) {
+      console.info('[AI Service] SDK invocation failed, trying direct endpoint:', invokeErr);
+    }
   }
 
-  try {
-    const { data, error } = await supabase.functions.invoke('ai-assistant', {
-      body: payload,
-    });
+  // 2. Direct fetch attempt to Supabase Edge Function URL
+  if (supabaseUrl && supabaseAnonKey) {
+    try {
+      const fnUrl = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/ai-assistant`;
+      const res = await fetch(fnUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
-    if (error) {
-      console.warn('[AI Service] Supabase Edge Function error:', error.message);
-      return null;
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.success && json?.content) {
+          return {
+            success: true,
+            content: json.content,
+            model: json.model,
+          };
+        }
+      }
+    } catch (fetchErr) {
+      console.info('[AI Service] Direct edge fetch failed:', fetchErr);
     }
-
-    if (data?.success && data?.content) {
-      return {
-        success: true,
-        content: data.content,
-        model: data.model,
-      };
-    }
-
-    return null;
-  } catch (invokeErr) {
-    console.warn('[AI Service] Failed to reach ai-assistant Edge Function, using grounded fallback:', invokeErr);
-    return null;
   }
+
+  return null;
 }
 
 /**
- * Extract matching destinations from free-form text or context
+ * Extract matching destinations from text
  */
 function extractMatchingDestinations(text: string): Destination[] {
   const t = text.toLowerCase();
@@ -168,13 +199,13 @@ function extractMatchingDestinations(text: string): Destination[] {
     return (
       t.includes(d.name.toLowerCase()) ||
       t.includes(d.slug.toLowerCase()) ||
-      (t.includes(d.district.toLowerCase()) && (t.includes('waterfall') || t.includes('park') || t.includes('hill')))
+      (t.includes(d.district.toLowerCase()) && (t.includes('waterfall') || t.includes('park') || t.includes('hill') || t.includes('valley')))
     );
   }).slice(0, 4);
 }
 
 /**
- * Extract matching offerings from free-form text
+ * Extract matching offerings from text
  */
 function extractMatchingOfferings(text: string): ProviderOffering[] {
   const t = text.toLowerCase();
@@ -192,53 +223,66 @@ function extractMatchingOfferings(text: string): ProviderOffering[] {
 }
 
 /**
- * Intelligent natural language response generator for Jharkhand Travel Assistant
- * Powered by Groq via Supabase Edge Function with local grounded fallback
+ * Detect mentioned origin/district in query or conversation history
+ */
+function detectOriginDistrict(query: string, history: AIMessage[] = []): string | null {
+  const allText = (history.map((m) => m.content).join(' ') + ' ' + query).toLowerCase();
+
+  const districtKeys = Object.keys(JHARKHAND_DISTRICTS_DATA);
+  for (const dist of districtKeys) {
+    if (allText.includes(dist.toLowerCase())) {
+      return dist;
+    }
+  }
+
+  if (allText.includes('jamshedpur') || allText.includes('tatanagar')) return 'East Singhbhum';
+  if (allText.includes('netarhat')) return 'Latehar';
+  if (allText.includes('chaibasa')) return 'West Singhbhum';
+  if (allText.includes('madhupur')) return 'Deoghar';
+
+  return null;
+}
+
+/**
+ * Deep Natural Language Response Generator for Jharkhand Travel Assistant
+ * Powered by Groq LLM with rich deterministic reasoning fallback
  */
 export async function generateAITravelResponse(
   userQuery: string,
-  history: AIMessage[] = []
+  history: AIMessage[] = [],
+  userLocation?: string
 ): Promise<AIMessage> {
-  const queryLower = userQuery.toLowerCase();
+  const q = userQuery.trim().toLowerCase();
 
-  // Prepare grounded context to send to Groq
+  // Handle empty query
+  if (!q) {
+    return {
+      id: `msg-${Date.now()}`,
+      role: 'assistant',
+      content: `Johar! How may I assist your travels across Jharkhand today? You can ask for custom itineraries, waterfalls, wildlife safaris, or short getaways.`,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  // 1. Attempt Groq Edge Function Call
   const relevantDestinations = VERIFIED_JHARKHAND_DESTINATIONS.filter((d) => {
     return (
-      queryLower.includes(d.name.toLowerCase()) ||
-      queryLower.includes(d.district.toLowerCase()) ||
-      queryLower.includes(d.category) ||
-      (queryLower.includes('waterfall') && d.category === 'waterfall') ||
-      (queryLower.includes('wildlife') && d.category === 'wildlife') ||
-      (queryLower.includes('temple') && d.category === 'religious')
+      q.includes(d.name.toLowerCase()) ||
+      q.includes(d.district.toLowerCase()) ||
+      q.includes(d.category) ||
+      (q.includes('waterfall') && d.category === 'waterfall') ||
+      (q.includes('wildlife') && d.category === 'wildlife') ||
+      (q.includes('temple') && d.category === 'religious')
     );
   }).slice(0, 8);
 
-  const relevantOfferings = [
-    ...JHARKHAND_ACCOMMODATIONS,
-    ...JHARKHAND_MARKETPLACE_PRODUCTS,
-  ].filter((o) => {
-    return (
-      queryLower.includes(o.name.toLowerCase()) ||
-      (o.district && queryLower.includes(o.district.toLowerCase())) ||
-      queryLower.includes(o.kind)
-    );
-  }).slice(0, 6);
-
-  const relevantAlerts = ACTIVE_SYSTEM_ALERTS.filter((alert) => {
-    const alertDist = (alert.district || '').toLowerCase();
-    return (
-      (alertDist && queryLower.includes(alertDist)) ||
-      (alert.destination_name && queryLower.includes(alert.destination_name.toLowerCase()))
-    );
-  });
-
-  // Attempt real Groq Edge Function call
   const edgeResponse = await callGroqEdgeFunction({
     action: 'chat',
     messages: [
       ...history.slice(-4).map((m) => ({ role: m.role, content: m.content })),
       { role: 'user', content: userQuery },
     ],
+    userLocation,
     context: {
       destinations: relevantDestinations.map((d) => ({
         name: d.name,
@@ -247,13 +291,13 @@ export async function generateAITravelResponse(
         category: d.category,
         description: d.short_description,
       })),
-      offerings: relevantOfferings.map((o) => ({
+      offerings: JHARKHAND_ACCOMMODATIONS.slice(0, 4).map((o) => ({
         name: o.name,
         kind: o.kind,
         district: o.district || '',
         price: o.price || undefined,
       })),
-      alerts: relevantAlerts.map((a) => ({
+      alerts: ACTIVE_SYSTEM_ALERTS.map((a) => ({
         title: a.title,
         district: a.district || '',
         description: a.description,
@@ -274,7 +318,6 @@ export async function generateAITravelResponse(
       timestamp: new Date().toISOString(),
       suggestedDestinations: matchedDestinations.length > 0 ? matchedDestinations : undefined,
       suggestedOfferings: matchedOfferings.length > 0 ? matchedOfferings : undefined,
-      alerts: relevantAlerts.length > 0 ? relevantAlerts : undefined,
       quickActions: [
         { label: '🗺️ View on Map', action: 'navigate', payload: '/map' },
         { label: '🗓️ Plan Full Itinerary', action: 'navigate', payload: '/plan-trip' },
@@ -284,84 +327,208 @@ export async function generateAITravelResponse(
     };
   }
 
-  // Fallback to grounded local knowledge engine if Edge Function is offline
+  // 2. Intelligent Grounded Local Natural-Language Reasoning Engine
+  const detectedOrigin = detectOriginDistrict(q, history) || userLocation || null;
+  const isShortTripQuery =
+    q.includes('hour') ||
+    q.includes('short trip') ||
+    q.includes('half day') ||
+    q.includes('quick trip') ||
+    q.includes('near me') ||
+    q.includes('short journey') ||
+    q.includes('few hours');
+
   let responseText = '';
   const quickActions: Array<{ label: string; action: string; payload?: string }> = [];
+  let suggestedDestinations: Destination[] = [];
 
-  if (queryLower.includes('waterfall')) {
+  // A. Short trip query WITHOUT known starting location -> Ask concise follow-up
+  if (isShortTripQuery && !detectedOrigin && !q.includes('ranchi') && !q.includes('jamshedpur') && !q.includes('deoghar') && !q.includes('dhanbad')) {
+    responseText = `Sure! I can suggest several wonderful short trips and scenic excursions across Jharkhand.
+
+**Where will you be starting from?**
+Please select or type your starting city below so I can give you exact travel times and destinations:`;
+
+    quickActions.push(
+      { label: '📍 From Ranchi', action: 'ask', payload: 'Places near Ranchi for a 3 hour trip' },
+      { label: '📍 From Jamshedpur', action: 'ask', payload: 'Places near Jamshedpur for a short trip' },
+      { label: '📍 From Deoghar', action: 'ask', payload: 'Places near Deoghar for a short trip' },
+      { label: '📍 From Dhanbad', action: 'ask', payload: 'Places near Dhanbad for a short trip' }
+    );
+  }
+  // B. Short trip from Ranchi / near Ranchi
+  else if (isShortTripQuery && (detectedOrigin === 'Ranchi' || q.includes('ranchi'))) {
+    responseText = `Here are the **top short trips and excursions near Ranchi** (all under 1.5 hours travel time):
+
+1. **Patratu Valley & Dam** (~35 km / ~1 hr drive)
+   • Famous for scenic serpentine hairpin mountain curves, valley viewpoints, and speedboating on Patratu Lake.
+
+2. **Dassam Falls** (~40 km / ~1 hr drive via NH 33)
+   • A dramatic 44-metre stepped canyon cascade on the Kanchi River. Great for photography and nature walks.
+
+3. **Rock Garden & Kanke Dam** (~6 km from city center / ~20 mins)
+   • Artistic landscaped boulder park overlooking Kanke reservoir. Perfect for a quick 2-3 hour peaceful outing.
+
+4. **Hundru Falls** (~45 km / ~1 hr 15 mins)
+   • Spectacular 98-metre plunge on the Subarnarekha River with Precambrian granite formations.
+
+5. **Tagore Hill** (~5 km / ~15 mins)
+   • Historical hilltop associated with Jyotirindranath Tagore, offering panoramic sunset views over Ranchi.`;
+
+    suggestedDestinations = VERIFIED_JHARKHAND_DESTINATIONS.filter((d) =>
+      ['patratu-valley', 'dassam-falls', 'rock-garden-ranchi', 'hundru-falls'].includes(d.slug)
+    );
+
+    quickActions.push(
+      { label: 'View Ranchi on Map', action: 'navigate', payload: '/map?district=Ranchi' },
+      { label: 'Book Local Cab', action: 'navigate', payload: '/transport' }
+    );
+  }
+  // C. Short trip from Jamshedpur / East Singhbhum
+  else if (isShortTripQuery && (detectedOrigin === 'East Singhbhum' || q.includes('jamshedpur'))) {
+    responseText = `Here are the **best short trips near Jamshedpur** (under 1.5 hours):
+
+1. **Dalma Wildlife Sanctuary** (~25 km / ~45 mins drive)
+   • Hilltop wildlife corridor known for wild Asian elephants, deer, and breathtaking views over the Subarnarekha valley.
+
+2. **Dimna Lake & Foothills** (~13 km / ~30 mins)
+   • Serene reservoir nestled in Dalma foothills, ideal for watersports and family picnics.
+
+3. **Chandil Dam & Reservoir** (~35 km / ~1 hr)
+   • Expansive water reservoir with boating and local freshwater fish dining.`;
+
+    suggestedDestinations = VERIFIED_JHARKHAND_DESTINATIONS.filter((d) =>
+      ['dalma-wildlife-sanctuary', 'dimna-lake'].includes(d.slug)
+    );
+
+    quickActions.push(
+      { label: 'View on Map', action: 'navigate', payload: '/map?district=East+Singhbhum' },
+      { label: 'Explore Stays', action: 'navigate', payload: '/accommodations' }
+    );
+  }
+  // D. Short trip from Deoghar
+  else if (isShortTripQuery && (detectedOrigin === 'Deoghar' || q.includes('deoghar'))) {
+    responseText = `Here are the **top short trips near Deoghar** (under 1 hour):
+
+1. **Trikut Pahar (Three Peaks)** (~18 km / ~40 mins)
+   • Sacred mountain peak with scenic ropeway, trekking paths, and sage hermitage caves.
+
+2. **Tapovan Caves & Shrines** (~10 km / ~25 mins)
+   • Peaceful rock caves known as Valmiki's meditation site with mountain springs.
+
+3. **Basukinath Dham** (~42 km / ~1 hr)
+   • Ancient Shiva pilgrimage companion shrine to Baidyanath Dham.`;
+
+    suggestedDestinations = VERIFIED_JHARKHAND_DESTINATIONS.filter((d) =>
+      ['baidyanath-dham-deoghar', 'trikut-pahar-deoghar'].includes(d.slug)
+    );
+
+    quickActions.push(
+      { label: 'View Deoghar on Map', action: 'navigate', payload: '/map?district=Deoghar' },
+      { label: 'Guided Tours', action: 'navigate', payload: '/tours' }
+    );
+  }
+  // E. Waterfalls query
+  else if (q.includes('waterfall') || q.includes('falls')) {
     responseText = `Jharkhand is celebrated as the **"Land of Waterfalls"** on the Chotanagpur Plateau.
 
 Top recommended cascades:
 • **Hundru Falls (Ranchi)**: A dramatic 98-metre plunge on the Subarnarekha River.
 • **Dassam Falls (Ranchi)**: A pristine stepped canyon waterfall on the Kanchi River.
 • **Jonha Falls (Gautamdhara)**: Sacred 722-step hanging-valley waterfall.
-• **Lodh Falls (Latehar)**: The highest waterfall in Jharkhand (143 metres), thundering inside deep Sal forests.
-• **Panchghagh Falls (Khunti)**: Five gentle parallel streams ideal for families.`;
+• **Lodh Falls (Latehar)**: Highest waterfall in Jharkhand (143 metres), thundering inside deep Sal forests.
+• **Panchghagh Falls (Khunti)**: Five gentle parallel streams ideal for families.
+• **Usri Falls (Giridih)**: Three-tiered granite gorge waterfall.`;
+
+    suggestedDestinations = VERIFIED_JHARKHAND_DESTINATIONS.filter((d) => d.category === 'waterfall').slice(0, 4);
 
     quickActions.push(
-      { label: 'View on Map', action: 'navigate', payload: '/map?district=Ranchi' },
-      { label: 'Plan 2-Day Waterfall Trip', action: 'plan', payload: 'waterfalls' }
+      { label: 'Explore Waterfalls on Map', action: 'navigate', payload: '/map' },
+      { label: 'Plan Multi-Day Trip', action: 'navigate', payload: '/plan-trip' }
     );
-  } else if (queryLower.includes('3 day') || queryLower.includes('3-day') || queryLower.includes('itinerary') || queryLower.includes('plan')) {
-    responseText = `Here is a popular **3-Day Classic Jharkhand Discovery Circuit**:
-
-• **Day 1: Waterfalls & Tribal Heritage of Ranchi**
-  Visit Hundru Falls, Rock Garden, and the State Tribal Museum. Savor traditional Dhuska & Rugra curry.
-• **Day 2: Serpentine Vistas of Patratu Valley & Dam**
-  Scenic morning drive through Patratu Valley's hairpin curves with lake boating, followed by ancient Rajrappa Chhinnamasta Shrine.
-• **Day 3: Queen of Chotanagpur — Netarhat & Betla**
-  Magnolia Point sunset views, Pine Forest walks, and wildlife safari at Betla National Park.`;
-
-    quickActions.push(
-      { label: 'Generate Full AI Itinerary', action: 'navigate', payload: '/plan-trip' },
-      { label: 'Explore Accommodations', action: 'navigate', payload: '/accommodations' }
-    );
-  } else if (queryLower.includes('tribal') || queryLower.includes('craft') || queryLower.includes('sohrai') || queryLower.includes('art')) {
+  }
+  // F. Tribal culture & art
+  else if (q.includes('tribal') || q.includes('culture') || q.includes('sohrai') || q.includes('craft') || q.includes('art')) {
     responseText = `Jharkhand has a vibrant 5,000-year-old indigenous cultural legacy of 32 tribal communities:
 
-• **GI-Tagged Sohrai & Khovar Murals**: Traditional mud-wall painting created with natural ochres, celebrating harvests and matrimony (Hazaribagh & Ranchi).
+• **GI-Tagged Sohrai & Khovar Murals**: Mud-wall natural ochre painting celebrating harvests and weddings (Hazaribagh & Ranchi).
 • **Dhokra Metal Casting**: Ancient lost-wax bronze figurines handcrafted by Malhor artisans.
-• **Chhau Dance**: UNESCO-inscribed martial mask dance from Saraikela.
-• **Tribal Living Heritage**: Visit Dr. Ramdayal Munda Tribal Museum in Ranchi and Ulihatu (Birsa Munda’s birthplace).`;
+• **Dr. Ramdayal Munda Tribal Research Museum (Ranchi)**: Rich collection of tribal lifestyle, weapons, costumes, and musical instruments.
+• **Chhau Dance**: UNESCO-inscribed martial dance from Saraikela.
+• **Ulihatu (Khunti)**: Sacred birthplace of Bhagwan Birsa Munda.`;
+
+    suggestedDestinations = VERIFIED_JHARKHAND_DESTINATIONS.filter((d) =>
+      d.category === 'tribal_culture' || d.category === 'heritage'
+    ).slice(0, 3);
 
     quickActions.push(
       { label: 'Shop Artisan Crafts', action: 'navigate', payload: '/marketplace' },
       { label: 'Cultural Experiences', action: 'navigate', payload: '/experiences' }
     );
-  } else if (queryLower.includes('wildlife') || queryLower.includes('nature') || queryLower.includes('forest') || queryLower.includes('eco')) {
-    responseText = `For wildlife and pristine eco-tourism, Jharkhand offers incredible biodiversity:
+  }
+  // G. Wildlife & Nature
+  else if (q.includes('wildlife') || q.includes('betla') || q.includes('forest') || q.includes('sanctuary') || q.includes('eco')) {
+    responseText = `Top **Wildlife & Eco-Tourism destinations** in Jharkhand:
 
-• **Betla National Park (Latehar)**: One of India’s earliest Project Tiger reserves, home to Asian elephants, leopards, and historic Chero forts.
-• **Dalma Wildlife Sanctuary (East Singhbhum)**: Major hilltop elephant corridor overlooking Jamshedpur and Subarnarekha valley.
+• **Betla National Park (Latehar)**: One of India’s earliest Project Tiger reserves. Home to wild Asian elephants, leopards, deer herds, and historical Chero forts.
+• **Dalma Wildlife Sanctuary (East Singhbhum)**: Mountain elephant corridor overlooking Jamshedpur.
 • **Saranda Forest (West Singhbhum)**: Asia’s densest virgin Sal tree canopy, known as the "Land of Seven Hundred Hills".
-• **Udhwa Lake Sanctuary (Sahibganj)**: Migratory bird paradise on the holy Ganga river bend.`;
+• **Netarhat (Latehar)**: Pristine highland pine forests and sunset viewpoints.`;
+
+    suggestedDestinations = VERIFIED_JHARKHAND_DESTINATIONS.filter((d) =>
+      ['betla-national-park', 'dalma-wildlife-sanctuary', 'netarhat', 'saranda-forest'].includes(d.slug)
+    );
 
     quickActions.push(
       { label: 'Explore Wildlife on Map', action: 'navigate', payload: '/map?district=Latehar' },
-      { label: 'Eco Homestays', action: 'navigate', payload: '/accommodations' }
+      { label: 'Book Safari Cab', action: 'navigate', payload: '/transport' }
     );
-  } else {
+  }
+  // H. Multi-day trip plan
+  else if (q.includes('day trip') || q.includes('itinerary') || q.includes('plan') || q.includes('budget') || q.includes('10000') || q.includes('3000')) {
+    responseText = `Here is a popular **3-Day Classic Jharkhand Discovery Circuit**:
+
+• **Day 1: Waterfalls & Tribal Heritage of Ranchi**
+  Visit Hundru Falls, Rock Garden, and State Tribal Museum. Savor traditional Dhuska & Rugra curry.
+• **Day 2: Serpentine Vistas of Patratu Valley & Dam**
+  Scenic morning drive through Patratu Valley's hairpin curves with lake boating, followed by ancient Rajrappa Chhinnamasta Shrine.
+• **Day 3: Queen of Chotanagpur — Netarhat & Betla**
+  Magnolia Point sunset views, Pine Forest walks, and wildlife safari at Betla National Park.`;
+
+    suggestedDestinations = VERIFIED_JHARKHAND_DESTINATIONS.slice(0, 3);
+
+    quickActions.push(
+      { label: 'Launch AI Trip Planner', action: 'navigate', payload: '/plan-trip' },
+      { label: 'Explore Accommodations', action: 'navigate', payload: '/accommodations' }
+    );
+  }
+  // I. General discovery query
+  else {
     responseText = `Johar! I am your **Jharkhand Diaries AI Travel Assistant**.
 
 I can help you with:
-• **Curating custom itineraries** across 24 districts (1 to 7 days).
-• **Finding waterfalls, wildlife reserves, and scenic valleys**.
-• **Discovering authentic Sohrai art, Dhokra crafts, and tribal homestays**.
-• **Navigating sacred pilgrimage circuits** (Baidyanath Dham, Parasnath, Rajrappa).
-• **Checking active safety advisories and seasonal weather tips**.
+• **Short Excursions & Getaways**: 2–4 hour scenic drives from Ranchi, Jamshedpur, Deoghar, and Dhanbad.
+• **Waterfalls & Valleys**: Hundru, Dassam, Lodh, Jonha, and Patratu Valley.
+• **Wildlife & Sanctuaries**: Betla National Park, Dalma Sanctuary, and Saranda Sal Forests.
+• **Tribal Art & Heritage**: Sohrai GI murals, lost-wax Dhokra crafts, and sacred shrines.
+• **Multi-Day AI Itineraries**: Custom day-by-day routes tailored to your group and budget.
 
-How may I assist your journey through Jharkhand today?`;
+Where would you like to explore today?`;
 
     quickActions.push(
+      { label: '3-Hour Trip from Ranchi', action: 'ask', payload: 'Places near Ranchi for a 3 hour trip' },
       { label: 'Top Waterfalls', action: 'ask', payload: 'What are the top waterfalls in Jharkhand?' },
-      { label: '3-Day Trip Plan', action: 'ask', payload: 'Give me a 3-day itinerary for Jharkhand' },
-      { label: 'Tribal Art & Crafts', action: 'ask', payload: 'Tell me about tribal crafts and Sohrai art' },
-      { label: 'Wildlife Sanctuaries', action: 'ask', payload: 'Where can I see wildlife in Jharkhand?' }
+      { label: 'Tribal Art & Sohrai', action: 'ask', payload: 'Tell me about tribal crafts and Sohrai art' },
+      { label: 'Plan 3-Day Trip', action: 'navigate', payload: '/plan-trip' }
     );
   }
 
-  const fallbackDestinations = extractMatchingDestinations(userQuery);
-  const fallbackOfferings = extractMatchingOfferings(userQuery);
+  // Extract any additional matched destinations from text
+  if (suggestedDestinations.length === 0) {
+    suggestedDestinations = extractMatchingDestinations(responseText + ' ' + userQuery);
+  }
+
+  const matchedOfferings = extractMatchingOfferings(responseText + ' ' + userQuery);
 
   return {
     id: `msg-${Date.now()}`,
@@ -369,9 +536,9 @@ How may I assist your journey through Jharkhand today?`;
     content: responseText,
     modelUsed: 'Jharkhand Tourism Knowledge Engine',
     timestamp: new Date().toISOString(),
-    suggestedDestinations: fallbackDestinations.length > 0 ? fallbackDestinations : undefined,
-    suggestedOfferings: fallbackOfferings.length > 0 ? fallbackOfferings : undefined,
-    alerts: relevantAlerts.length > 0 ? relevantAlerts : undefined,
+    suggestedDestinations: suggestedDestinations.length > 0 ? suggestedDestinations : undefined,
+    suggestedOfferings: matchedOfferings.length > 0 ? matchedOfferings : undefined,
+    alerts: ACTIVE_SYSTEM_ALERTS.slice(0, 1),
     quickActions: quickActions.length > 0 ? quickActions : undefined,
   };
 }
@@ -385,7 +552,6 @@ export async function generatePersonalizedItinerary(
 ): Promise<GeneratedItinerary> {
   const daysCount = Math.max(1, Math.min(input.days, 7));
 
-  // Prepare context data for LLM
   const candidateDestinations = VERIFIED_JHARKHAND_DESTINATIONS.map((d) => ({
     name: d.name,
     slug: d.slug,
@@ -421,7 +587,6 @@ export async function generatePersonalizedItinerary(
     try {
       const parsed = JSON.parse(edgeResponse.content);
       if (parsed && Array.isArray(parsed.days) && parsed.days.length > 0) {
-        // Hydrate real Destination records and Provider offerings
         const hydratedDays: ItineraryDay[] = parsed.days.map((day: any, idx: number) => {
           const dayNumber = day.dayNumber || idx + 1;
           const district = day.district || input.startLocation;
@@ -508,7 +673,7 @@ export async function generatePersonalizedItinerary(
         };
       }
     } catch (parseErr) {
-      console.warn('[AI Service] Failed to parse Groq JSON itinerary, falling back to rule engine:', parseErr);
+      console.warn('[AI Service] Failed to parse Groq JSON itinerary:', parseErr);
     }
   }
 
@@ -833,7 +998,6 @@ export async function generateProviderContent(input: {
   const district = input.district || 'Jharkhand';
   const highlights = input.keyHighlights || 'authentic local experience';
 
-  // Call Groq Edge Function
   const edgeResponse = await callGroqEdgeFunction({
     action: 'provider_writer',
     context: {
@@ -861,7 +1025,6 @@ export async function generateProviderContent(input: {
     }
   }
 
-  // Fallback
   if (input.kind === 'stay') {
     return {
       enhancedTitle: input.title.includes('Resort') || input.title.includes('Stay') ? input.title : `${input.title} Eco Stay & Homestay`,
