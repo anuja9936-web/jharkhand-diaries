@@ -7,6 +7,7 @@ export type { DestinationCategory, DestinationStatus } from '../constants/destin
 
 export interface Destination {
   id: string;
+  provider_id?: string | null;
   name: string;
   slug: string;
   short_description: string | null;

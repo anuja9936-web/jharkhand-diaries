@@ -172,3 +172,55 @@ export async function getUserReviews(): Promise<UserReviewWithDestination[]> {
 
   return (data ?? []) as unknown as UserReviewWithDestination[];
 }
+
+export interface ReviewWithDestination extends ReviewWithAuthor {
+  destination: Destination | null;
+}
+
+export async function getReviewsForDestinationIds(destinationIds: string[]): Promise<ReviewWithDestination[]> {
+  const client = getClient();
+
+  if (destinationIds.length === 0) {
+    return [];
+  }
+
+  const { data: reviews, error } = await client
+    .from('reviews')
+    .select('id, user_id, destination_id, rating, review_text, created_at, updated_at, destination:destinations(*)')
+    .in('destination_id', destinationIds)
+    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  const reviewRows = (reviews ?? []) as unknown as ReviewWithDestination[];
+  const userIds = [...new Set(reviewRows.map((review) => review.user_id))];
+
+  let profilesById = new Map<string, { id: string; full_name: string | null; avatar_url: string | null }>();
+
+  if (userIds.length > 0) {
+    const { data: profiles, error: profileError } = await client.rpc('get_public_profile_summary', {
+      p_ids: userIds,
+    });
+
+    if (profileError) {
+      throw profileError;
+    }
+
+    profilesById = new Map(
+      ((profiles ?? []) as Array<{ id: string; full_name: string | null; avatar_url: string | null }>).map((profile) => [profile.id, profile])
+    );
+  }
+
+  return reviewRows.map((review) => {
+    const profile = profilesById.get(review.user_id);
+    return {
+      ...review,
+      reviewer_name: profile?.full_name ?? 'Traveller',
+      reviewer_email: null,
+      reviewer_avatar_url: profile?.avatar_url ?? null,
+    };
+  });
+}

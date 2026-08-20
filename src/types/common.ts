@@ -7,6 +7,17 @@ export interface Profile {
   role: UserRole;
   phone: string | null;
   avatar_url: string | null;
+  business_name: string | null;
+  owner_name: string | null;
+  description: string | null;
+  address: string | null;
+  district: string | null;
+  state: string | null;
+  website_url: string | null;
+  social_links: Record<string, string> | null;
+  provider_categories: string[] | null;
+  profile_image_url: string | null;
+  cover_image_url: string | null;
   created_at: string;
   updated_at: string;
 }

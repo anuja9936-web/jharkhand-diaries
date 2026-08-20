@@ -58,7 +58,26 @@ export async function upsertProfile(input: CreateProfileInput): Promise<Profile>
 
 export async function updateProfile(
   userId: string,
-  updates: Partial<Pick<Profile, 'full_name' | 'email' | 'phone' | 'avatar_url'>>
+  updates: Partial<
+    Pick<
+      Profile,
+      | 'full_name'
+      | 'email'
+      | 'phone'
+      | 'avatar_url'
+      | 'business_name'
+      | 'owner_name'
+      | 'description'
+      | 'address'
+      | 'district'
+      | 'state'
+      | 'website_url'
+      | 'social_links'
+      | 'provider_categories'
+      | 'profile_image_url'
+      | 'cover_image_url'
+    >
+  >
 ): Promise<Profile> {
   if (!supabase) {
     throw new Error('Supabase is not configured.');

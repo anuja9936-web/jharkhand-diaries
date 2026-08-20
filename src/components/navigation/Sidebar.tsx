@@ -9,15 +9,15 @@ export function Sidebar({ role }: { role: UserRole }) {
   const links = roleNavMap[role];
 
   return (
-    <aside className="hidden h-full w-72 shrink-0 border-r border-ink-200 bg-white/85 backdrop-blur-xl lg:block">
-      <div className="flex h-full flex-col gap-6 p-5">
-        <div className="rounded-3xl bg-ink-900 p-5 text-white shadow-glow">
+    <aside className="hidden h-full w-68 shrink-0 border-r border-ink-200 bg-white/85 backdrop-blur-xl lg:block">
+      <div className="flex h-full flex-col gap-4 p-4">
+        <div className="rounded-2xl bg-ink-900 p-4 text-white shadow-glow">
           <Badge className="mb-3 bg-white/10 text-white" variant="neutral">
             {ROLE_LABELS[role]}
           </Badge>
-          <h2 className="text-2xl font-semibold">Role workspace</h2>
-          <p className="mt-2 text-sm leading-6 text-white/75">
-            This is a role-aware skeleton. Real authorization will be synchronized from Supabase later.
+          <h2 className="text-xl font-semibold leading-tight">Role workspace</h2>
+          <p className="mt-2 max-w-[12rem] text-sm leading-5 text-white/75">
+            Provider tools, requests, and public listings in one place.
           </p>
         </div>
 
@@ -46,4 +46,3 @@ export function Sidebar({ role }: { role: UserRole }) {
     </aside>
   );
 }
-

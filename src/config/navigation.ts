@@ -12,8 +12,8 @@ export interface NavItem {
 export const publicNavItems: NavItem[] = [
   { label: 'Home', href: '/', icon: Home },
   { label: 'Explore', href: '/explore', icon: Compass },
+  { label: 'Marketplace', href: '/marketplace', icon: Store },
   { label: 'Destinations', href: '/destinations', icon: MapPin },
-  { label: 'Vendors', href: '/vendors', icon: Store },
   { label: 'About', href: '/about', icon: Globe2 },
 ];
 
@@ -30,8 +30,12 @@ export const touristNavItems: NavItem[] = [
 export const providerNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/provider', icon: Home },
   { label: 'Profile', href: '/provider/profile', icon: Users },
-  { label: 'Verification', href: '/provider/verification', icon: ShieldCheck },
   { label: 'Listings', href: '/provider/listings', icon: Store },
+  { label: 'Products', href: '/provider/products', icon: Compass },
+  { label: 'Experiences', href: '/provider/experiences', icon: Globe2 },
+  { label: 'Stays', href: '/provider/stays', icon: MapPin },
+  { label: 'Requests', href: '/provider/requests', icon: ShieldCheck },
+  { label: 'Reviews', href: '/provider/reviews', icon: BarChart3 },
   { label: 'Payments', href: '/provider/payments', icon: BarChart3 },
   { label: 'Analytics', href: '/provider/analytics', icon: Compass },
 ];
