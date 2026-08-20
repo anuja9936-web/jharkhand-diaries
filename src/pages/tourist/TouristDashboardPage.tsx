@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, ChevronRight, Heart, MapPin, PencilLine, Plus, Sparkles, Star, Trash2 } from 'lucide-react';
+import { CalendarDays, ChevronRight, Heart, MapPin, PencilLine, Plus, Star, Trash2 } from 'lucide-react';
 import { Badge, Button, Card } from '../../components/ui';
 import { EmptyState, ErrorState, LoadingState } from '../../components/common/StateBlocks';
 import { DEFAULT_DESTINATION_IMAGE, getDestinationCategoryLabel } from '../../constants/destinations';
@@ -9,6 +9,7 @@ import { useTouristFavourites } from '../../hooks/useTouristFavourites';
 import { formatIndianCurrency } from '../../lib/utils';
 import { getUserReviews, type UserReviewWithDestination } from '../../services/reviews/reviewService';
 import { deleteTrip, getUserTrips } from '../../services/trips/tripService';
+import { getMyTouristBookings, type TouristBookingWithDetails } from '../../services/tourist/touristBookingService';
 import type { Destination } from '../../types/destination';
 import type { TripRecord } from '../../types/tourist';
 
@@ -242,6 +243,7 @@ export function TouristDashboardPage() {
   const [reviews, setReviews] = useState<UserReviewWithDestination[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [reviewsError, setReviewsError] = useState<string | null>(null);
+  const [bookings, setBookings] = useState<TouristBookingWithDetails[]>([]);
   const [deletingTripId, setDeletingTripId] = useState<string | null>(null);
   const [savedError, setSavedError] = useState<string | null>(null);
 
@@ -286,8 +288,20 @@ export function TouristDashboardPage() {
       }
     }
 
+    async function loadBookingsData() {
+      try {
+        const records = await getMyTouristBookings();
+        if (alive) {
+          setBookings(records);
+        }
+      } catch {
+        // Ignore background load error
+      }
+    }
+
     void loadTrips();
     void loadReviews();
+    void loadBookingsData();
 
     return () => {
       alive = false;
@@ -312,26 +326,6 @@ export function TouristDashboardPage() {
 
     return 'Traveller';
   }, [profile?.email, profile?.full_name]);
-
-  const placesExplored = useMemo(() => {
-    const ids = new Set<string>();
-
-    for (const destination of savedDestinations) {
-      ids.add(destination.id);
-    }
-
-    for (const trip of trips) {
-      for (const tripDestination of trip.trip_destinations ?? []) {
-        ids.add(tripDestination.destination_id);
-      }
-    }
-
-    for (const review of reviews) {
-      ids.add(review.destination_id);
-    }
-
-    return ids.size;
-  }, [reviews, savedDestinations, trips]);
 
   const handleRemoveFavourite = async (destinationId: string) => {
     try {
@@ -381,23 +375,23 @@ export function TouristDashboardPage() {
 
             <div className="flex flex-wrap gap-3">
               <Button asChild>
-                <Link to="/explore">Explore Destinations</Link>
+                <Link to="/tourist/requests">My Bookings</Link>
               </Button>
               <Button asChild variant="secondary">
                 <Link to="/tourist/itinerary/new">Plan a Trip</Link>
               </Button>
               <Button asChild variant="secondary">
-                <a href="#saved-destinations">Saved Destinations</a>
+                <Link to="/explore">Explore Destinations</Link>
               </Button>
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {[
+              { label: 'My Bookings', value: bookings.length, icon: CalendarDays },
               { label: 'Saved Destinations', value: savedDestinations.length, icon: Heart },
               { label: 'My Trips', value: trips.length, icon: MapPin },
               { label: 'My Reviews', value: reviews.length, icon: Star },
-              { label: 'Places Explored', value: placesExplored, icon: Sparkles },
             ].map(({ label, value, icon: Icon }) => (
               <div key={label} className="rounded-3xl border border-ink-200 bg-white/90 p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3">

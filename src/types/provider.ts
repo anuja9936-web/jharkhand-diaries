@@ -60,14 +60,21 @@ export interface ProviderRequest {
   id: string;
   provider_id: string;
   offering_id: string | null;
+  offering_kind?: ProviderOfferingKind | null;
   request_type: ProviderRequestType;
   tourist_id: string | null;
   tourist_name: string;
   tourist_email: string | null;
   preferred_date: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
   duration: string | null;
   participants: number;
+  number_of_people?: number;
   message: string | null;
+  estimated_amount?: number | null;
+  provider_response?: string | null;
+  details?: Record<string, unknown> | null;
   status: ProviderRequestStatus;
   created_at: string;
   updated_at: string;
@@ -97,6 +104,17 @@ export interface ProviderNotification {
   title: string;
   message: string;
   type: 'info' | 'request' | 'review' | 'verification' | 'alert';
+  read: boolean;
+  link?: string | null;
+  created_at: string;
+}
+
+export interface TouristNotification {
+  id: string;
+  tourist_id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'booking_status' | 'alert' | 'review';
   read: boolean;
   link?: string | null;
   created_at: string;

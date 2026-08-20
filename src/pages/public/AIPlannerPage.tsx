@@ -3,14 +3,17 @@ import {
   AlertCircle,
   ArrowLeft,
   BookmarkPlus,
+  Calendar,
   Car,
   Compass,
-  ExternalLink,
+  DollarSign,
   Hotel,
   Info,
   MapPin,
   Map as MapIcon,
+  RotateCcw,
   Sparkles,
+  Users,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -19,23 +22,26 @@ import {
   type ItineraryGenerationInput,
 } from '../../services/ai/aiService';
 import { useAuth } from '../../hooks/useAuth';
+import { useTranslation } from '../../i18n';
 import { createTrip, addDestinationToTrip } from '../../services/trips/tripService';
 import { formatIndianCurrency } from '../../lib/utils';
-import { Badge, Button } from '../../components/ui';
+import { Badge, Button, Input } from '../../components/ui';
 
 const INTEREST_OPTIONS = [
-  { id: 'waterfall', label: 'Waterfalls & Gorges', emoji: '🌊' },
-  { id: 'wildlife', label: 'Wildlife & Sanctuaries', emoji: '🐅' },
-  { id: 'culture', label: 'Tribal Culture & Arts', emoji: '🥁' },
-  { id: 'heritage', label: 'Historical Forts & Megaliths', emoji: '🏛️' },
-  { id: 'religious', label: 'Sacred Temples & Shrines', emoji: '🛕' },
-  { id: 'adventure', label: 'Mountain Passes & Treks', emoji: '⛺' },
-  { id: 'eco', label: 'Eco Retreats & Lakes', emoji: '🌿' },
-  { id: 'crafts', label: 'Sohrai Art & Handicrafts', emoji: '🎨' },
+  { id: 'waterfall', label: 'Waterfalls & Gorges', labelHi: 'जलप्रपात एवं झरने', emoji: '🌊' },
+  { id: 'wildlife', label: 'Wildlife & Sanctuaries', labelHi: 'वन्यजीव एवं अभयारण्य', emoji: '🐅' },
+  { id: 'culture', label: 'Tribal Culture & Arts', labelHi: 'आदिवासी संस्कृति एवं कला', emoji: '🥁' },
+  { id: 'heritage', label: 'Historical Forts & Megaliths', labelHi: 'ऐतिहासिक किले एवं धरोहर', emoji: '🏛️' },
+  { id: 'religious', label: 'Sacred Temples & Shrines', labelHi: 'पवित्र तीर्थ एवं मंदिर', emoji: '🛕' },
+  { id: 'adventure', label: 'Mountain Passes & Treks', labelHi: 'पहाड़ी ट्रेक्स एवं रोमांच', emoji: '⛺' },
+  { id: 'eco', label: 'Eco Retreats & Lakes', labelHi: 'प्रकृति एवं झीलें', emoji: '🌿' },
+  { id: 'crafts', label: 'Sohrai Art & Handicrafts', labelHi: 'सोहराई कला एवं हस्तशिल्प', emoji: '🎨' },
+  { id: 'food', label: 'Authentic Local Cuisine (Dhuska, Rugra)', labelHi: 'झारखंडी खानपान (धुस्का, रुगड़ा)', emoji: '🍲' },
 ];
 
 export function AIPlannerPage() {
   const { user } = useAuth();
+  const { language, t } = useTranslation();
   const navigate = useNavigate();
 
   const [input, setInput] = useState<ItineraryGenerationInput>({
@@ -45,19 +51,29 @@ export function AIPlannerPage() {
     travellerType: 'couple',
     interests: ['waterfall', 'eco', 'culture'],
     travelIntensity: 'balanced',
+    language,
   });
 
+  const [customBudget, setCustomBudget] = useState<string>('');
   const [itinerary, setItinerary] = useState<GeneratedItinerary | null>(null);
   const [isGenerating, setIsGenerating] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveMessage, setSaveMessage] = useState('');
+
+  // Sync language with input
+  useEffect(() => {
+    setInput((prev) => ({ ...prev, language }));
+  }, [language]);
 
   // Initial load
   useEffect(() => {
     let alive = true;
     async function loadInitial() {
       setIsGenerating(true);
-      const initial = await generatePersonalizedItinerary(input);
+      const initial = await generatePersonalizedItinerary({
+        ...input,
+        language,
+      });
       if (alive) {
         setItinerary(initial);
         setIsGenerating(false);
@@ -67,7 +83,7 @@ export function AIPlannerPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [language]);
 
   const handleInterestToggle = (id: string) => {
     setInput((prev) => {
@@ -86,7 +102,12 @@ export function AIPlannerPage() {
     setSaveMessage('');
 
     try {
-      const generated = await generatePersonalizedItinerary(input);
+      const customAmount = customBudget ? Number(customBudget) : undefined;
+      const generated = await generatePersonalizedItinerary({
+        ...input,
+        customBudgetAmount: customAmount,
+        language,
+      });
       setItinerary(generated);
     } catch (err) {
       console.error('[AI Planner] generation error:', err);
@@ -105,491 +126,523 @@ export function AIPlannerPage() {
 
     setSaveStatus('saving');
     try {
-      // 1. Create Trip record
       const newTrip = await createTrip({
         title: itinerary.title,
+        start_date: new Date().toISOString().slice(0, 10),
+        end_date: new Date(Date.now() + itinerary.daysCount * 86400000).toISOString().slice(0, 10),
         budget: itinerary.estimatedTotalBudget.min,
-        start_location: itinerary.startLocation,
-        notes: itinerary.summary,
+        start_location: input.startLocation,
       });
 
-      // 2. Add each day's primary destination
-      for (const day of itinerary.days) {
-        for (const item of day.schedule) {
-          if (item.destination) {
-            await addDestinationToTrip({
-              trip_id: newTrip.id,
-              destination_id: item.destination.id,
-              day_number: day.dayNumber,
-              notes: item.title,
-            }).catch(() => {});
-          }
-        }
-      }
+      if (newTrip) {
+        const destIds = new Set<string>();
+        itinerary.days.forEach((day) => {
+          day.schedule.forEach((slot) => {
+            if (slot.destination?.id) {
+              destIds.add(slot.destination.id);
+            }
+          });
+        });
 
-      setSaveStatus('saved');
-      setSaveMessage('Itinerary successfully saved to your Tourist Portal Trips!');
-    } catch (err: any) {
-      console.error('[AI Planner] Save trip error', err);
+        let order = 0;
+        for (const dId of destIds) {
+          await addDestinationToTrip({
+            trip_id: newTrip.id,
+            destination_id: dId,
+            visit_order: order++,
+          });
+        }
+
+        setSaveStatus('saved');
+        setSaveMessage(language === 'hi' ? 'यात्रा सफलतापूर्वक सहेजी गई!' : 'Trip saved to your Tourist Portal!');
+      } else {
+        setSaveStatus('error');
+        setSaveMessage(language === 'hi' ? 'यात्रा सहेजने में विफल। कृपया पुनः प्रयास करें।' : 'Failed to save trip. Please try again.');
+      }
+    } catch (err) {
+      console.error('[AI Planner] save error', err);
       setSaveStatus('error');
-      setSaveMessage(err.message || 'Could not save trip to portal.');
+      setSaveMessage('Error saving trip.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] pb-20 font-sans">
-      {/* ── Page Header Banner ──────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-ink-200/80">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F7F3EA] text-ink-900 pb-20 selection:bg-clay-500/20 font-sans">
+      {/* Top Banner */}
+      <div className="bg-ink-950 text-white py-10 px-4 sm:px-6 lg:px-8 border-b border-ink-200/20">
+        <div className="mx-auto max-w-7xl">
+          <Link
+            to="/explore"
+            className="inline-flex items-center gap-1.5 text-xs text-sand/80 hover:text-white mb-4 transition"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>{t('common.back', 'Back to Explore')}</span>
+          </Link>
+
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-ink-600 hover:text-ink-950 transition"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  <span>Home</span>
-                </Link>
-                <span className="text-ink-300">/</span>
-                <span className="rounded-full bg-forest-100 px-2.5 py-0.5 text-[11px] font-bold text-forest-900 border border-forest-300 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3 text-amber-500" />
-                  Johar AI Travel Assistant
-                </span>
+              <div className="inline-flex items-center gap-2 rounded-full bg-forest-900/80 px-3 py-1 text-xs font-semibold text-amber-400 border border-forest-700">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>{language === 'hi' ? 'स्मार्ट एआई यात्रा योजक' : 'Smart AI Itinerary Engine'}</span>
               </div>
-              <h1 className="font-display text-2xl sm:text-4xl font-bold text-ink-950">
-                Personalized AI Itinerary Planner
+              <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white">
+                {t('ai.assistantTitle', 'Johar AI Personalized Trip Planner')}
               </h1>
-              <p className="text-sm text-ink-600 max-w-2xl">
-                Generate realistic, day-by-day travel itineraries backed by certified Jharkhand GIS destination data, local homestays, and verified transport routes.
+              <p className="text-xs sm:text-sm text-ink-300 max-w-2xl">
+                {language === 'hi'
+                  ? 'अपनी प्राथमिकताओं, बजट एवं अवधि के अनुसार 24 जिलों के लिए व्यक्तिगत यात्रा कार्यक्रम तैयार करें।'
+                  : 'Curate dynamic day-by-day itineraries across Jharkhand with verified GIS destinations, stays, travel times, and cultural experiences.'}
               </p>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <Button asChild variant="secondary" size="sm" className="text-xs font-bold">
-                <Link to="/map">
-                  <MapIcon className="h-3.5 w-3.5 mr-1.5 text-clay-700" />
-                  <span>Interactive Map</span>
-                </Link>
-              </Button>
-              <Button asChild variant="secondary" size="sm" className="text-xs font-bold">
-                <Link to="/explore">Explore Places</Link>
-              </Button>
-            </div>
+            {itinerary?.modelUsed && (
+              <div className="self-start md:self-auto rounded-2xl bg-white/5 border border-white/10 px-4 py-2 text-right">
+                <span className="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">
+                  AI Architecture
+                </span>
+                <span className="text-xs font-semibold text-white">
+                  ✦ {itinerary.modelUsed}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
-          {/* ── Left Column: Itinerary Configuration Form ────────────────────── */}
-          <div className="bg-white rounded-3xl p-6 border border-ink-200/90 shadow-sm space-y-6">
-            <div className="flex items-center justify-between border-b border-ink-200/80 pb-3">
-              <h2 className="font-display text-base font-bold text-ink-950 flex items-center gap-2">
+      {/* Main Grid Content */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Parameter Configuration Panel (4 cols) */}
+          <div className="lg:col-span-4 bg-[#FFFDF9] rounded-3xl p-6 border border-ink-200/90 shadow-lg space-y-6 sticky top-24">
+            <div className="flex items-center justify-between border-b border-ink-200/70 pb-3">
+              <h2 className="font-display font-bold text-base text-ink-950 flex items-center gap-2">
                 <Compass className="h-4 w-4 text-clay-700" />
-                <span>Trip Preferences</span>
+                <span>{language === 'hi' ? 'यात्रा प्राथमिकताएं' : 'Trip Preferences'}</span>
               </h2>
-              <span className="text-[11px] font-semibold text-ink-500">24 Districts Ready</span>
-            </div>
-
-            {/* 1. Duration (Days) */}
-            <div className="space-y-2">
-              <label className="flex items-center justify-between text-xs font-bold text-ink-800">
-                <span>Trip Duration</span>
-                <span className="text-clay-800 font-extrabold text-sm">{input.days} {input.days === 1 ? 'Day' : 'Days'}</span>
-              </label>
-              <div className="grid grid-cols-5 gap-1.5">
-                {[1, 2, 3, 4, 5, 6, 7].map((num) => (
-                  <button
-                    key={num}
-                    type="button"
-                    onClick={() => setInput((p) => ({ ...p, days: num }))}
-                    className={`rounded-xl py-2 text-xs font-bold transition-all ${
-                      input.days === num
-                        ? 'bg-forest-900 text-white shadow-xs'
-                        : 'bg-sand/60 text-ink-700 hover:bg-sand hover:text-ink-900 border border-ink-200/60'
-                    }`}
-                  >
-                    {num}D
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* 2. Starting City */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-ink-800">Starting City / Gateway</label>
-              <select
-                value={input.startLocation}
-                onChange={(e) => setInput((p) => ({ ...p, startLocation: e.target.value }))}
-                className="w-full rounded-xl border border-ink-200 bg-ink-50 px-3 py-2 text-xs font-bold text-ink-900 focus:outline-none focus:ring-1 focus:ring-forest-600"
+              <button
+                type="button"
+                onClick={() => {
+                  setInput({
+                    days: 3,
+                    startLocation: 'Ranchi',
+                    budgetTier: 'moderate',
+                    travellerType: 'couple',
+                    interests: ['waterfall', 'eco', 'culture'],
+                    travelIntensity: 'balanced',
+                    language,
+                  });
+                  setCustomBudget('');
+                }}
+                className="text-[11px] text-ink-500 hover:text-ink-800 flex items-center gap-1 font-semibold"
               >
-                <option value="Ranchi">Ranchi (Birsa Munda Airport / Railway Station)</option>
-                <option value="Jamshedpur">Jamshedpur (Tatanagar Junction)</option>
-                <option value="Deoghar">Deoghar (Deoghar Airport / Baidyanath Dham)</option>
-                <option value="Dhanbad">Dhanbad (Grand Chord Railway Hub)</option>
-                <option value="Bokaro">Bokaro Steel City</option>
-                <option value="Hazaribagh">Hazaribagh Road</option>
-              </select>
+                <RotateCcw className="h-3 w-3" />
+                <span>{t('common.clear', 'Reset')}</span>
+              </button>
             </div>
 
-            {/* 3. Traveller Type */}
+            {/* 1. Starting City Gateway */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-ink-800">Who is Travelling?</label>
+              <label className="text-xs font-bold text-ink-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <MapPin className="h-3.5 w-3.5 text-clay-600" />
+                <span>{t('ai.startingFrom', 'Starting City / Gateway')}</span>
+              </label>
               <div className="grid grid-cols-3 gap-1.5">
-                {(['solo', 'couple', 'family', 'friends', 'senior'] as const).map((type) => (
+                {['Ranchi', 'Jamshedpur', 'Deoghar', 'Dhanbad', 'Bokaro', 'Latehar (Netarhat)'].map((city) => (
                   <button
-                    key={type}
+                    key={city}
                     type="button"
-                    onClick={() => setInput((p) => ({ ...p, travellerType: type }))}
-                    className={`rounded-xl py-2 px-2 text-xs font-bold capitalize transition-all ${
-                      input.travellerType === type
-                        ? 'bg-clay-700 text-white shadow-xs'
+                    onClick={() => setInput((p) => ({ ...p, startLocation: city }))}
+                    className={`px-2 py-2 rounded-xl text-xs font-bold transition-all ${
+                      input.startLocation === city
+                        ? 'bg-forest-900 text-white shadow-xs'
                         : 'bg-sand/60 text-ink-700 hover:bg-sand border border-ink-200/60'
                     }`}
                   >
-                    {type}
+                    {city}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* 4. Budget Tier */}
+            {/* 2. Duration Selector */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-ink-800">Approximate Budget Tier</label>
+              <label className="text-xs font-bold text-ink-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <Calendar className="h-3.5 w-3.5 text-clay-600" />
+                <span>{t('ai.tripDuration', 'Trip Duration')}</span>
+              </label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[
+                  { days: 1, label: language === 'hi' ? '1 दिन' : '1 Day' },
+                  { days: 2, label: language === 'hi' ? '2 दिन' : '2 Days' },
+                  { days: 3, label: language === 'hi' ? '3 दिन' : '3 Days' },
+                  { days: 5, label: language === 'hi' ? '5 दिन' : '5 Days' },
+                ].map((opt) => (
+                  <button
+                    key={opt.days}
+                    type="button"
+                    onClick={() => setInput((p) => ({ ...p, days: opt.days }))}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                      input.days === opt.days
+                        ? 'bg-forest-900 text-white shadow-xs'
+                        : 'bg-sand/60 text-ink-700 hover:bg-sand border border-ink-200/60'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Travellers Type */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-ink-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <Users className="h-3.5 w-3.5 text-clay-600" />
+                <span>{t('ai.travellerType', 'Who is Travelling?')}</span>
+              </label>
               <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { id: 'budget', label: 'Budget', desc: '< ₹1.5K/day' },
-                  { id: 'moderate', label: 'Moderate', desc: '₹2.5K/day' },
-                  { id: 'premium', label: 'Premium', desc: '₹4.5K+/day' },
-                ].map((tier) => (
+                  { id: 'solo', label: language === 'hi' ? 'एकल' : 'Solo' },
+                  { id: 'couple', label: language === 'hi' ? 'युगल' : 'Couple' },
+                  { id: 'family', label: language === 'hi' ? 'परिवार' : 'Family' },
+                  { id: 'friends', label: language === 'hi' ? 'मित्र' : 'Friends' },
+                  { id: 'senior', label: language === 'hi' ? 'वरिष्ठ नागरिक' : 'Seniors' },
+                ].map((trav) => (
                   <button
-                    key={tier.id}
+                    key={trav.id}
                     type="button"
-                    onClick={() => setInput((p) => ({ ...p, budgetTier: tier.id as any }))}
-                    className={`rounded-xl py-2 px-2 text-center transition-all ${
-                      input.budgetTier === tier.id
+                    onClick={() => setInput((p) => ({ ...p, travellerType: trav.id as any }))}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                      input.travellerType === trav.id
                         ? 'bg-forest-900 text-white shadow-xs'
                         : 'bg-sand/60 text-ink-700 hover:bg-sand border border-ink-200/60'
                     }`}
                   >
-                    <div className="text-xs font-bold capitalize">{tier.label}</div>
-                    <div className="text-[10px] opacity-80">{tier.desc}</div>
+                    {trav.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* 5. Select Interests */}
+            {/* 4. Budget Preference */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-ink-800">Key Interests</label>
-              <div className="grid grid-cols-2 gap-2">
-                {INTEREST_OPTIONS.map((opt) => {
-                  const selected = input.interests.includes(opt.id);
+              <label className="text-xs font-bold text-ink-800 flex items-center gap-1.5 uppercase tracking-wider">
+                <DollarSign className="h-3.5 w-3.5 text-clay-600" />
+                <span>{t('ai.budgetTier', 'Budget Tier')}</span>
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: 'budget', label: language === 'hi' ? 'किफायती' : 'Budget' },
+                  { id: 'moderate', label: language === 'hi' ? 'मध्यम' : 'Moderate' },
+                  { id: 'premium', label: language === 'hi' ? 'प्रीमियम' : 'Premium' },
+                ].map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setInput((p) => ({ ...p, budgetTier: b.id as any }))}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                      input.budgetTier === b.id
+                        ? 'bg-forest-900 text-white shadow-xs'
+                        : 'bg-sand/60 text-ink-700 hover:bg-sand border border-ink-200/60'
+                    }`}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+              <div className="pt-1">
+                <Input
+                  type="number"
+                  placeholder={language === 'hi' ? 'वैकल्पिक: कस्टम बजट राशि (₹)' : 'Optional: Custom budget ₹ (e.g. 8000)'}
+                  value={customBudget}
+                  onChange={(e) => setCustomBudget(e.target.value)}
+                  className="text-xs bg-white h-9"
+                />
+              </div>
+            </div>
+
+            {/* 5. Key Interests */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-ink-800 uppercase tracking-wider">
+                {t('ai.interests', 'Key Interests')}
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {INTEREST_OPTIONS.map((int) => {
+                  const selected = input.interests.includes(int.id);
                   return (
                     <button
-                      key={opt.id}
+                      key={int.id}
                       type="button"
-                      onClick={() => handleInterestToggle(opt.id)}
-                      className={`flex items-center gap-2 rounded-xl p-2 text-left text-xs font-semibold border transition-all ${
+                      onClick={() => handleInterestToggle(int.id)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold transition-all ${
                         selected
-                          ? 'border-amber-400 bg-amber-50/80 text-ink-950 font-bold shadow-2xs'
-                          : 'border-ink-200/80 bg-white text-ink-600 hover:bg-sand/40'
+                          ? 'bg-clay-700 text-white shadow-2xs'
+                          : 'bg-sand/60 text-ink-700 hover:bg-sand border border-ink-200/60'
                       }`}
                     >
-                      <span className="text-sm">{opt.emoji}</span>
-                      <span className="truncate">{opt.label}</span>
+                      <span>{int.emoji}</span>
+                      <span>{language === 'hi' ? int.labelHi : int.label}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* 6. Travel Intensity */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-ink-800">Travel Pace &amp; Intensity</label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {[
-                  { id: 'relaxed', label: 'Relaxed' },
-                  { id: 'balanced', label: 'Balanced' },
-                  { id: 'packed', label: 'Packed' },
-                ].map((int) => (
-                  <button
-                    key={int.id}
-                    type="button"
-                    onClick={() => setInput((p) => ({ ...p, travelIntensity: int.id as any }))}
-                    className={`rounded-xl py-2 text-xs font-bold capitalize transition-all ${
-                      input.travelIntensity === int.id
-                        ? 'bg-amber-400 text-ink-950 shadow-xs'
-                        : 'bg-sand/60 text-ink-700 hover:bg-sand border border-ink-200/60'
-                    }`}
-                  >
-                    {int.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Submit Button */}
+            {/* 6. Generate Button */}
             <Button
               type="button"
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="w-full bg-forest-900 hover:bg-forest-800 text-white font-bold py-3 rounded-2xl shadow-md flex items-center justify-center gap-2 text-sm"
+              className="w-full bg-forest-900 hover:bg-forest-800 text-white font-bold py-3 rounded-2xl shadow-md text-sm flex items-center justify-center gap-2"
             >
               <Sparkles className="h-4 w-4 text-amber-400" />
-              <span>{isGenerating ? 'Curating Optimal Circuit with AI...' : 'Generate AI Itinerary'}</span>
+              <span>{isGenerating ? t('ai.curatingItinerary', 'Curating Itinerary...') : t('ai.generateItinerary', 'Generate AI Itinerary')}</span>
             </Button>
           </div>
 
-          {/* ── Right Column: Generated Itinerary Showcase ───────────────────── */}
-          <div className="space-y-6">
-            {isGenerating && !itinerary && (
-              <div className="bg-white rounded-3xl p-12 border border-ink-200 text-center space-y-4 shadow-sm animate-pulse">
-                <div className="h-12 w-12 rounded-full bg-amber-100 text-amber-900 mx-auto flex items-center justify-center">
-                  <Sparkles className="h-6 w-6 animate-spin" />
+          {/* Right Column: Generated Itinerary Preview (8 cols) */}
+          <div className="lg:col-span-8 space-y-6">
+            {isGenerating ? (
+              <div className="bg-[#FFFDF9] rounded-3xl p-12 border border-ink-200/90 shadow-md text-center space-y-4">
+                <div className="h-16 w-16 rounded-full bg-forest-900 text-amber-400 flex items-center justify-center mx-auto animate-pulse">
+                  <Sparkles className="h-8 w-8" />
                 </div>
-                <h3 className="font-display text-lg font-bold text-ink-950">
-                  Johar AI is curating your personalized itinerary...
-                </h3>
-                <p className="text-xs text-ink-500 max-w-md mx-auto">
-                  Synthesizing optimal routes, verified accommodations, and scenic viewpoints across Jharkhand.
-                </p>
+                <div className="space-y-1">
+                  <h3 className="font-display font-bold text-lg text-ink-950">
+                    {t('ai.curatingItinerary', 'Johar AI is Curating Your Jharkhand Journey')}
+                  </h3>
+                  <p className="text-xs text-ink-500 max-w-md mx-auto">
+                    {language === 'hi'
+                      ? '24 जिलों के भू-स्थानिक डेटा, झरनों, आवासों एवं मौसम अलर्ट का विश्लेषण किया जा रहा है...'
+                      : 'Synthesizing verified 24-district destinations, travel times, eco-stays, and safety advisories with Groq Llama 3.3...'}
+                  </p>
+                </div>
               </div>
-            )}
-
-            {itinerary && (
-              <>
-                {/* Itinerary Summary Header Card */}
-                <div className="bg-[#FFFDF9] rounded-3xl p-6 sm:p-8 border border-ink-200/90 shadow-md space-y-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-clay-100 text-clay-900 border border-clay-300 text-xs font-bold px-3 py-1">
-                        {itinerary.daysCount} Days • {itinerary.travellerType.toUpperCase()}
-                      </span>
-                      <span className="rounded-full bg-forest-100 text-forest-900 border border-forest-300 text-xs font-bold px-3 py-1 capitalize">
-                        {itinerary.travelIntensity} Pace
-                      </span>
-                      {itinerary.modelUsed && (
-                        <span className="rounded-full bg-amber-100 text-amber-950 border border-amber-300 text-[10px] font-bold px-2.5 py-0.5">
-                          ✦ {itinerary.modelUsed}
-                        </span>
-                      )}
+            ) : itinerary ? (
+              <div className="space-y-6">
+                {/* Header Summary Card */}
+                <div className="bg-[#FFFDF9] rounded-3xl p-6 sm:p-8 border border-ink-200/90 shadow-lg space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="accent" className="text-xs font-bold py-0.5">
+                          {itinerary.daysCount} {language === 'hi' ? 'दिवसीय योजना' : 'Days Circuit'}
+                        </Badge>
+                        <Badge variant="neutral" className="text-xs font-semibold py-0.5">
+                          {input.startLocation} Gateway
+                        </Badge>
+                        <Badge variant="neutral" className="text-xs font-semibold py-0.5 capitalize">
+                          {itinerary.travellerType}
+                        </Badge>
+                      </div>
+                      <h2 className="font-display text-xl sm:text-2xl font-bold text-ink-950">
+                        {itinerary.title}
+                      </h2>
+                      <p className="text-xs sm:text-sm text-ink-700 leading-relaxed">
+                        {itinerary.summary}
+                      </p>
                     </div>
 
-                    <div className="text-right">
-                      <p className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">
-                        Estimated Budget
-                      </p>
-                      <p className="text-base sm:text-lg font-extrabold text-forest-900">
-                        {formatIndianCurrency(itinerary.estimatedTotalBudget.min)} –{' '}
-                        {formatIndianCurrency(itinerary.estimatedTotalBudget.max)}
-                      </p>
+                    {/* Total Budget Card */}
+                    <div className="shrink-0 rounded-2xl bg-amber-50/80 border border-amber-300/80 p-4 text-center min-w-[170px]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block">
+                        {t('ai.estimatedBudget', 'Estimated Total Budget')}
+                      </span>
+                      <span className="text-lg sm:text-xl font-display font-extrabold text-ink-950 block">
+                        {formatIndianCurrency(itinerary.estimatedTotalBudget.min)} – {formatIndianCurrency(itinerary.estimatedTotalBudget.max)}
+                      </span>
+                      <span className="text-[10px] text-ink-500 font-medium">
+                        {language === 'hi' ? 'आवास एवं स्थानीय परिवहन सहित' : 'Includes stays & transport'}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-ink-950 leading-tight">
-                      {itinerary.title}
-                    </h2>
-                    <p className="text-xs sm:text-sm text-ink-700 leading-relaxed">
-                      {itinerary.summary}
-                    </p>
-                  </div>
-
-                  {/* Advisories banner if any */}
-                  {itinerary.activeAdvisories.length > 0 && (
-                    <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-3.5 text-xs text-amber-950 space-y-1">
-                      <p className="font-bold flex items-center gap-1.5 text-amber-900">
-                        <AlertCircle className="h-4 w-4 text-amber-700" />
-                        <span>Active Tourism &amp; Weather Advisories</span>
-                      </p>
-                      <ul className="list-disc list-inside text-[11px] text-amber-800 space-y-0.5 pl-1">
-                        {itinerary.activeAdvisories.map((adv, idx) => (
-                          <li key={idx}>{adv}</li>
-                        ))}
-                      </ul>
+                  {/* Best Season & Notes Strip */}
+                  {itinerary.bestSeason && (
+                    <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-ink-200/70 text-xs text-forest-900 bg-forest-50/70 p-3 rounded-2xl">
+                      <Info className="h-4 w-4 text-forest-700 shrink-0" />
+                      <span><strong>{language === 'hi' ? 'उत्तम मौसम:' : 'Best Season:'}</strong> {itinerary.bestSeason}</span>
                     </div>
                   )}
 
-                  {/* Actions Header Bar */}
+                  {/* Action Bar */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-ink-200/70">
                     <div className="flex flex-wrap items-center gap-2">
                       <Button
                         type="button"
                         onClick={handleSaveTrip}
                         disabled={saveStatus === 'saving' || saveStatus === 'saved'}
-                        className={`text-xs font-bold ${
-                          saveStatus === 'saved'
-                            ? 'bg-emerald-700 text-white'
-                            : 'bg-clay-700 hover:bg-clay-800 text-white'
-                        }`}
+                        className="bg-forest-900 text-white hover:bg-forest-800 text-xs font-bold rounded-xl py-2 px-4 flex items-center gap-1.5 shadow-sm"
                       >
-                        <BookmarkPlus className="h-3.5 w-3.5 mr-1.5" />
-                        <span>{saveStatus === 'saved' ? 'Saved to Portal' : 'Save to My Trips'}</span>
+                        <BookmarkPlus className="h-4 w-4" />
+                        <span>
+                          {saveStatus === 'saving'
+                            ? (language === 'hi' ? 'सहेजा जा रहा है...' : 'Saving...')
+                            : saveStatus === 'saved'
+                              ? (language === 'hi' ? 'सहेजा गया ✓' : 'Saved to Trips ✓')
+                              : t('ai.saveToMyTrips', 'Save to My Trips')}
+                        </span>
                       </Button>
 
-                      <Button asChild variant="secondary" size="sm" className="text-xs font-bold">
-                        <Link to={`/map?district=${itinerary.days[0]?.district || 'Ranchi'}`}>
-                          <MapIcon className="h-3.5 w-3.5 mr-1.5 text-clay-700" />
-                          <span>View on Map</span>
+                      <Button
+                        asChild
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs font-bold rounded-xl py-2 px-3 flex items-center gap-1.5"
+                      >
+                        <Link to={`/map?district=${input.startLocation}`}>
+                          <MapIcon className="h-3.5 w-3.5 text-clay-700" />
+                          <span>{t('common.viewOnMap', 'View on Map')}</span>
                         </Link>
                       </Button>
                     </div>
 
-                    {saveStatus === 'saved' && (
-                      <span className="text-xs text-forest-700 font-bold">
-                        ✓ {saveMessage || 'Saved! View in'} <Link to="/tourist/itinerary" className="underline">My Trips</Link>
-                      </span>
-                    )}
-                    {saveStatus === 'error' && (
-                      <span className="text-xs text-red-600 font-bold">
+                    {saveMessage && (
+                      <span className={`text-xs font-semibold ${saveStatus === 'saved' ? 'text-emerald-700' : 'text-clay-700'}`}>
                         {saveMessage}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Day by Day Plan Cards */}
+                {/* Day by Day Cards */}
                 <div className="space-y-6">
                   {itinerary.days.map((day) => (
                     <div
                       key={day.dayNumber}
-                      className="bg-white rounded-3xl p-6 sm:p-7 border border-ink-200/90 shadow-sm space-y-5"
+                      className="bg-[#FFFDF9] rounded-3xl p-6 sm:p-7 border border-ink-200/90 shadow-md space-y-5"
                     >
-                      {/* Day Header */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-200/70 pb-3">
-                        <div className="flex items-center gap-3">
-                          <span className="h-8 w-8 rounded-full bg-forest-900 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                            {day.dayNumber}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-ink-200/80 pb-3">
+                        <div className="space-y-0.5">
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-clay-700">
+                            {language === 'hi' ? `दिन ${day.dayNumber}` : `Day ${day.dayNumber}`} • {day.district} District
                           </span>
-                          <div>
-                            <h3 className="font-display text-base sm:text-lg font-bold text-ink-950">
-                              {day.title}
-                            </h3>
-                            <p className="text-xs text-ink-500 flex items-center gap-1">
-                              <MapPin className="h-3.5 w-3.5 text-clay-700" />
-                              <span>{day.district} District Circuit</span>
-                            </p>
-                          </div>
+                          <h3 className="font-display text-lg font-bold text-ink-950">
+                            {day.title}
+                          </h3>
                         </div>
-
-                        <Badge variant="accent" className="text-xs">
-                          Est. ~{formatIndianCurrency(day.dayBudgetEstimate)}
-                        </Badge>
+                        <span className="self-start sm:self-auto rounded-full bg-sand px-3 py-1 text-xs font-bold text-ink-800">
+                          {language === 'hi' ? 'दैनिक अनुमान:' : 'Est. Day Cost:'} {formatIndianCurrency(day.dayBudgetEstimate)}
+                        </span>
                       </div>
 
-                      {/* Activities Schedule Grid */}
-                      <div className="space-y-3">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-clay-700">
-                          Recommended Timeline &amp; Highlights
-                        </p>
-
-                        <div className="space-y-2.5">
-                          {day.schedule.map((item, sIdx) => (
-                            <div
-                              key={sIdx}
-                              className="rounded-2xl border border-ink-200/70 bg-[#FFFDF9] p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-                            >
-                              <div className="space-y-1 min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="rounded-md bg-sand px-2 py-0.5 text-[10px] font-bold text-ink-800">
-                                    {item.timeSlot}
-                                  </span>
+                      {/* Time Slots (Morning / Afternoon / Evening) */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {day.schedule.map((activity, idx) => (
+                          <div
+                            key={idx}
+                            className="rounded-2xl border border-ink-200/80 bg-white p-4 space-y-2.5 flex flex-col justify-between shadow-2xs hover:border-clay-400 transition"
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="rounded-full bg-forest-100 text-forest-900 text-[10px] font-extrabold px-2 py-0.5 uppercase tracking-wider">
+                                  {activity.timeSlot}
+                                </span>
+                                {activity.approxTravelTime && (
                                   <span className="text-[10px] text-ink-500 font-medium">
-                                    • {item.durationHours} hrs
+                                    {activity.approxTravelTime}
                                   </span>
-                                </div>
-                                <h4 className="font-bold text-ink-900 text-xs sm:text-sm">
-                                  {item.title}
-                                </h4>
-                                <p className="text-xs text-ink-600 leading-relaxed">
-                                  {item.description}
-                                </p>
+                                )}
                               </div>
 
-                              {item.destination && (
-                                <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                                  <Button
-                                    asChild
-                                    size="sm"
-                                    variant="secondary"
-                                    className="text-[11px] font-bold py-1 h-auto"
-                                  >
-                                    <Link to={`/destinations/${item.destination.slug}`}>
-                                      <span>Explore</span>
-                                      <ExternalLink className="ml-1 h-3 w-3" />
-                                    </Link>
-                                  </Button>
-                                  <Button
-                                    asChild
-                                    size="sm"
-                                    variant="secondary"
-                                    className="text-[11px] font-bold py-1 h-auto"
-                                    title="View on Map"
-                                  >
-                                    <Link to={`/map?destination=${item.destination.slug}`}>
-                                      <MapPin className="h-3 w-3 text-clay-700" />
-                                    </Link>
-                                  </Button>
-                                </div>
+                              <h4 className="font-bold text-xs text-ink-950 line-clamp-2">
+                                {activity.title}
+                              </h4>
+                              <p className="text-[11px] text-ink-600 leading-relaxed line-clamp-3">
+                                {activity.description}
+                              </p>
+
+                              {activity.reason && (
+                                <p className="text-[10px] text-clay-800 italic bg-sand/40 p-1.5 rounded-lg">
+                                  💡 {activity.reason}
+                                </p>
                               )}
                             </div>
-                          ))}
-                        </div>
+
+                            {activity.destination && (
+                              <div className="pt-2 border-t border-ink-100 flex items-center justify-between">
+                                <span className="text-[10px] text-ink-500 font-medium truncate max-w-[120px]">
+                                  {activity.destination.name}
+                                </span>
+                                <Button
+                                  asChild
+                                  size="sm"
+                                  variant="secondary"
+                                  className="text-[10px] py-1 px-2 h-auto font-bold shrink-0"
+                                >
+                                  <Link to={`/destinations/${activity.destination.slug}`}>
+                                    {t('common.viewDetails', 'Details')}
+                                  </Link>
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
 
                       {/* Recommended Stay & Transport for the Day */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-ink-200/70 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                         {day.recommendedStay && (
-                          <div className="rounded-2xl border border-ink-200/80 bg-sand/30 p-3 flex items-start gap-3">
-                            <Hotel className="h-4 w-4 text-clay-700 shrink-0 mt-0.5" />
+                          <div className="rounded-2xl bg-amber-50/50 border border-amber-300/70 p-3 flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0">
+                              <Hotel className="h-4 w-4" />
+                            </div>
                             <div className="min-w-0 flex-1">
-                              <p className="font-bold text-ink-950 truncate">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block">
+                                {language === 'hi' ? 'अनुशंसित आवास' : 'Recommended Stay'}
+                              </span>
+                              <p className="text-xs font-bold text-ink-950 truncate">
                                 {day.recommendedStay.name}
                               </p>
-                              <p className="text-[11px] text-forest-700 font-semibold">
-                                {day.recommendedStay.price ? formatIndianCurrency(day.recommendedStay.price) : 'Contact'} / night • {day.recommendedStay.district}
-                              </p>
                             </div>
-                            <Button asChild size="sm" variant="secondary" className="text-[10px] py-1 px-2 h-auto font-bold shrink-0">
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="secondary"
+                              className="text-[10px] py-1 px-2.5 h-auto font-bold shrink-0"
+                            >
                               <Link to={`/stays/${day.recommendedStay.id}`}>
-                                View Stay
+                                {language === 'hi' ? 'देखें' : 'View'}
                               </Link>
                             </Button>
                           </div>
                         )}
 
                         {day.recommendedTransport && (
-                          <div className="rounded-2xl border border-ink-200/80 bg-sand/30 p-3 flex items-start gap-3">
-                            <Car className="h-4 w-4 text-forest-700 shrink-0 mt-0.5" />
+                          <div className="rounded-2xl bg-emerald-50/50 border border-emerald-300/70 p-3 flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-xl bg-emerald-200 text-emerald-900 flex items-center justify-center shrink-0">
+                              <Car className="h-4 w-4" />
+                            </div>
                             <div className="min-w-0 flex-1">
-                              <p className="font-bold text-ink-950 truncate">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 block">
+                                {language === 'hi' ? 'अनुशंसित परिवहन' : 'Transport Option'}
+                              </span>
+                              <p className="text-xs font-bold text-ink-950 truncate">
                                 {day.recommendedTransport.name}
                               </p>
-                              <p className="text-[11px] text-ink-600">
-                                {day.recommendedTransport.price ? formatIndianCurrency(day.recommendedTransport.price) : 'Contact'} • Verified AC Vehicle
-                              </p>
                             </div>
-                            <Button asChild size="sm" variant="secondary" className="text-[10px] py-1 px-2 h-auto font-bold shrink-0">
-                              <Link to={`/transport/${day.recommendedTransport.id}`}>
-                                View Cab
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="secondary"
+                              className="text-[10px] py-1 px-2.5 h-auto font-bold shrink-0"
+                            >
+                              <Link to="/transport">
+                                {language === 'hi' ? 'बुक करें' : 'Book'}
                               </Link>
                             </Button>
                           </div>
                         )}
                       </div>
 
-                      {/* Day Local Tips */}
-                      {day.localTips && (
-                        <div className="rounded-2xl bg-forest-50/70 border border-forest-200/60 p-3 text-[11px] text-forest-950 space-y-1">
-                          <p className="font-bold flex items-center gap-1.5 text-forest-900">
-                            <Info className="h-3.5 w-3.5" />
-                            <span>Curator Notes for Day {day.dayNumber}</span>
-                          </p>
-                          <ul className="list-disc list-inside text-forest-800 space-y-0.5">
-                            {day.localTips.map((tip, tIdx) => (
-                              <li key={tIdx}>{tip}</li>
+                      {/* Local Tips */}
+                      {day.localTips && day.localTips.length > 0 && (
+                        <div className="text-[11px] text-ink-600 bg-sand/50 p-3 rounded-2xl border border-ink-200/60 space-y-1">
+                          <span className="font-bold text-ink-800">
+                            {language === 'hi' ? 'स्थानीय सुझाव:' : 'Curator Tips:'}
+                          </span>
+                          <ul className="list-disc list-inside space-y-0.5">
+                            {day.localTips.map((tip, i) => (
+                              <li key={i}>{tip}</li>
                             ))}
                           </ul>
                         </div>
@@ -597,8 +650,23 @@ export function AIPlannerPage() {
                     </div>
                   ))}
                 </div>
-              </>
-            )}
+
+                {/* Important Travel Notes & Advisories */}
+                {itinerary.importantTravelNotes && itinerary.importantTravelNotes.length > 0 && (
+                  <div className="bg-[#FFFDF9] rounded-3xl p-6 border border-amber-300 bg-amber-50/30 space-y-3">
+                    <h4 className="font-bold text-xs text-amber-950 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-700" />
+                      <span>{t('ai.activeAdvisories', 'Important Travel Notes & Guidelines')}</span>
+                    </h4>
+                    <ul className="list-disc list-inside text-xs text-ink-700 space-y-1">
+                      {itinerary.importantTravelNotes.map((note, idx) => (
+                        <li key={idx}>{note}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

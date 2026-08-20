@@ -282,101 +282,157 @@ export function ProviderDashboardPage() {
         )}
       </div>
 
-      {/* Dynamic Type-Specific Quick Actions (Strictly for active capabilities) */}
+      {/* MY LISTINGS SECTION */}
       <Card className="space-y-4 p-5 sm:p-6">
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-clay-700">
-              Quick Actions
+              Provider Portfolio
             </span>
             <h2 className="font-display text-lg font-bold text-ink-900">
-              What would you like to do today?
+              My Listings
             </h2>
           </div>
+          <Button asChild variant="secondary" size="sm">
+            <Link to="/provider/requests">View Requests ({requests.length})</Link>
+          </Button>
         </div>
 
-        <div className="flex flex-wrap gap-2.5">
-          {/* Accommodation actions */}
-          {hasCapability('accommodation') && (
-            <>
-              <Button asChild size="sm">
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {/* Accommodation Card */}
+          <div className="rounded-2xl border border-ink-200/80 bg-white/90 p-4 space-y-3 flex flex-col justify-between shadow-2xs hover:border-amber-300 transition-all">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Accommodation</span>
+                <div className="rounded-xl bg-amber-50 p-1.5 text-amber-700">
+                  <Building2 className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 text-2xl font-bold text-ink-900">
+                {totalsByKind.stay}{' '}
+                <span className="text-xs font-medium text-ink-500">listings</span>
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-ink-100">
+              <Button asChild size="sm" className="w-full text-xs bg-forest-900 text-white hover:bg-forest-800">
                 <Link to="/provider/stays/new">
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  <Plus className="mr-1 h-3.5 w-3.5" />
                   Add Accommodation
                 </Link>
               </Button>
-              <Button asChild variant="secondary" size="sm">
+              <Button asChild variant="secondary" size="sm" className="w-full text-xs">
                 <Link to="/provider/stays">Manage Stays</Link>
               </Button>
-            </>
-          )}
+            </div>
+          </div>
 
-          {/* Artisan actions */}
-          {hasCapability('artisan') && (
-            <>
-              <Button asChild size="sm">
+          {/* Products Card */}
+          <div className="rounded-2xl border border-ink-200/80 bg-white/90 p-4 space-y-3 flex flex-col justify-between shadow-2xs hover:border-clay-300 transition-all">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-clay-800">Products</span>
+                <div className="rounded-xl bg-clay-50 p-1.5 text-clay-700">
+                  <Package className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 text-2xl font-bold text-ink-900">
+                {totalsByKind.product}{' '}
+                <span className="text-xs font-medium text-ink-500">listings</span>
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-ink-100">
+              <Button asChild size="sm" className="w-full text-xs bg-forest-900 text-white hover:bg-forest-800">
                 <Link to="/provider/products/new">
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  <Plus className="mr-1 h-3.5 w-3.5" />
                   Add Product
                 </Link>
               </Button>
-              <Button asChild variant="secondary" size="sm">
-                <Link to="/provider/products">Manage Inventory</Link>
+              <Button asChild variant="secondary" size="sm" className="w-full text-xs">
+                <Link to="/provider/products">Manage Products</Link>
               </Button>
-            </>
-          )}
+            </div>
+          </div>
 
-          {/* Guide actions */}
-          {hasCapability('guide') && (
-            <>
-              <Button asChild size="sm">
+          {/* Tours Card */}
+          <div className="rounded-2xl border border-ink-200/80 bg-white/90 p-4 space-y-3 flex flex-col justify-between shadow-2xs hover:border-emerald-300 transition-all">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Tours</span>
+                <div className="rounded-xl bg-emerald-50 p-1.5 text-emerald-700">
+                  <Compass className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 text-2xl font-bold text-ink-900">
+                {totalsByKind.tour}{' '}
+                <span className="text-xs font-medium text-ink-500">listings</span>
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-ink-100">
+              <Button asChild size="sm" className="w-full text-xs bg-forest-900 text-white hover:bg-forest-800">
                 <Link to="/provider/tours/new">
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Add Tour Service
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add Tour
                 </Link>
               </Button>
-              <Button asChild variant="secondary" size="sm">
+              <Button asChild variant="secondary" size="sm" className="w-full text-xs">
                 <Link to="/provider/tours">Manage Tours</Link>
               </Button>
-            </>
-          )}
+            </div>
+          </div>
 
-          {/* Adventure actions */}
-          {hasCapability('adventure') && (
-            <>
-              <Button asChild size="sm">
+          {/* Experiences Card */}
+          <div className="rounded-2xl border border-ink-200/80 bg-white/90 p-4 space-y-3 flex flex-col justify-between shadow-2xs hover:border-purple-300 transition-all">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-800">Experiences</span>
+                <div className="rounded-xl bg-purple-50 p-1.5 text-purple-700">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 text-2xl font-bold text-ink-900">
+                {totalsByKind.experience}{' '}
+                <span className="text-xs font-medium text-ink-500">listings</span>
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-ink-100">
+              <Button asChild size="sm" className="w-full text-xs bg-forest-900 text-white hover:bg-forest-800">
                 <Link to="/provider/experiences/new">
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  <Plus className="mr-1 h-3.5 w-3.5" />
                   Add Experience
                 </Link>
               </Button>
-              <Button asChild variant="secondary" size="sm">
+              <Button asChild variant="secondary" size="sm" className="w-full text-xs">
                 <Link to="/provider/experiences">Manage Experiences</Link>
               </Button>
-            </>
-          )}
+            </div>
+          </div>
 
-          {/* Transport actions */}
-          {hasCapability('transport') && (
-            <>
-              <Button asChild size="sm">
+          {/* Transport Card */}
+          <div className="rounded-2xl border border-ink-200/80 bg-white/90 p-4 space-y-3 flex flex-col justify-between shadow-2xs hover:border-blue-300 transition-all">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-800">Transport</span>
+                <div className="rounded-xl bg-blue-50 p-1.5 text-blue-700">
+                  <Car className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 text-2xl font-bold text-ink-900">
+                {totalsByKind.transport}{' '}
+                <span className="text-xs font-medium text-ink-500">listings</span>
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5 pt-2 border-t border-ink-100">
+              <Button asChild size="sm" className="w-full text-xs bg-forest-900 text-white hover:bg-forest-800">
                 <Link to="/provider/transport/new">
-                  <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  Add Vehicle
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add Transport Service
                 </Link>
               </Button>
-              <Button asChild variant="secondary" size="sm">
+              <Button asChild variant="secondary" size="sm" className="w-full text-xs">
                 <Link to="/provider/transport">Manage Fleet</Link>
               </Button>
-            </>
-          )}
-
-          <Button asChild variant="secondary" size="sm">
-            <Link to="/provider/requests">View All Requests</Link>
-          </Button>
-          <Button asChild variant="secondary" size="sm">
-            <Link to="/provider/reviews">Traveller Reviews</Link>
-          </Button>
+            </div>
+          </div>
         </div>
       </Card>
 

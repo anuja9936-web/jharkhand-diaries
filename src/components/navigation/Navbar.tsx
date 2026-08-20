@@ -12,6 +12,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { partnerNavItems, publicNavGroups } from '../../config/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { getDashboardPathForRole } from '../../lib/auth';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { Badge, Button } from '../ui';
 
 export function Navbar() {
@@ -343,8 +344,11 @@ export function Navbar() {
           </div>
         </nav>
 
-        {/* 3. Right: Partner Access & Auth Controls */}
+        {/* 3. Right: Language Switcher, Partner Access & Auth Controls */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {/* Language Switcher */}
+          <LanguageSwitcher className="hidden sm:inline-flex" />
+
           {/* Subtle Partner Access Links (Desktop) */}
           <div className="hidden md:flex items-center gap-1.5 border-r border-ink-200/80 pr-2.5">
             {partnerNavItems.map((partner) => (
@@ -422,6 +426,12 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="border-t border-ink-200/80 bg-[#F7F3EA] px-4 py-5 lg:hidden animate-in fade-in slide-in-from-top-2 duration-200 shadow-2xl text-ink-900 max-h-[calc(100vh-4rem)] overflow-y-auto">
           <div className="flex flex-col gap-4">
+            {/* Language Switcher in Mobile Drawer */}
+            <div className="flex items-center justify-between px-3 py-2 bg-white/70 rounded-2xl border border-ink-200/80">
+              <span className="text-xs font-bold text-ink-700">Language / भाषा</span>
+              <LanguageSwitcher />
+            </div>
+
             {/* Home Direct Link */}
             <NavLink
               to="/"

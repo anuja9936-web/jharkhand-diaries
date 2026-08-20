@@ -137,14 +137,21 @@ function PublicOfferingRequestForm({
   const config = getRequestFormConfig(offering.kind);
 
   const [preferredDate, setPreferredDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [duration, setDuration] = useState('');
   const [participants, setParticipants] = useState(String(config.participantsDefault));
+  const [pickupLocation, setPickupLocation] = useState('');
+  const [dropDestination, setDropDestination] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const touristName = profile?.full_name ?? user?.email ?? '';
   const touristEmail = profile?.email ?? user?.email ?? '';
+
+  const parsedQty = Math.max(1, Number(participants) || 1);
+  const estimatedTotal = offering.price ? offering.price * parsedQty : null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -158,15 +165,29 @@ function PublicOfferingRequestForm({
       setSaving(true);
       setNotice(null);
 
+      const detailsObj: Record<string, unknown> = {};
+      if (offering.kind === 'transport') {
+        if (pickupLocation) detailsObj.pickupLocation = pickupLocation;
+        if (dropDestination) detailsObj.dropDestination = dropDestination;
+      } else if (offering.kind === 'product') {
+        if (deliveryAddress) detailsObj.deliveryAddress = deliveryAddress;
+      }
+
       await createProviderRequest({
         providerId: offering.provider_id,
         offeringId: offering.id,
+        offeringKind: offering.kind,
         requestType: config.requestType,
         touristName: touristName.trim() || 'Valued Tourist',
         touristEmail: touristEmail.trim() || null,
+        startDate: preferredDate || null,
+        endDate: endDate || null,
         preferredDate: preferredDate || null,
         duration: duration || null,
-        participants: Number(participants) || 1,
+        numberOfPeople: parsedQty,
+        participants: parsedQty,
+        estimatedAmount: estimatedTotal,
+        details: detailsObj,
         message: message.trim() || null,
       });
 
@@ -174,6 +195,10 @@ function PublicOfferingRequestForm({
       setMessage('');
       setDuration('');
       setPreferredDate('');
+      setEndDate('');
+      setPickupLocation('');
+      setDropDestination('');
+      setDeliveryAddress('');
       setParticipants(String(config.participantsDefault));
     } catch (submitError) {
       setNotice({
@@ -188,88 +213,178 @@ function PublicOfferingRequestForm({
   const providerName = providerProfile?.business_name || providerProfile?.full_name || 'the provider';
 
   return (
-    <Card className="border-clay-200/80 bg-white p-6 shadow-sm">
-      <div className="space-y-2 border-b border-ink-100 pb-4">
+    <Card className="border-clay-200/80 bg-white p-6 shadow-sm space-y-4 font-sans">
+      <div className="space-y-1.5 border-b border-ink-100 pb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-clay-600" />
-          <h2 className="text-xl font-bold text-ink-900">{config.title}</h2>
+          <h2 className="text-lg font-bold text-ink-900">{config.title}</h2>
         </div>
         <p className="text-xs leading-relaxed text-ink-600">{config.subtitle}</p>
       </div>
 
       {!user ? (
-        <div className="mt-5 space-y-4 rounded-2xl bg-sand/60 p-5 text-center">
-          <p className="text-sm font-medium text-ink-800">
+        <div className="space-y-3 rounded-2xl bg-sand/60 p-5 text-center">
+          <p className="text-xs font-medium text-ink-800">
             Sign in as a tourist to send enquiries directly to <strong>{providerName}</strong>.
           </p>
-          <Button asChild variant="primary" className="w-full">
-            <Link to="/login">Sign in to Enquire</Link>
+          <Button asChild variant="primary" className="w-full text-xs font-bold py-2">
+            <Link to="/login">Sign in to Request</Link>
           </Button>
         </div>
       ) : role !== 'tourist' ? (
-        <div className="mt-5 rounded-2xl bg-sand/60 p-4 text-center">
+        <div className="rounded-2xl bg-sand/60 p-4 text-center">
           <p className="text-xs text-ink-600">
             Enquiries can be submitted by tourist accounts. You are currently signed in with the <strong>{role}</strong> role.
           </p>
         </div>
       ) : (
-        <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-3.5" onSubmit={handleSubmit}>
           {notice ? (
             <div
-              className={`flex items-start gap-2.5 rounded-2xl p-3.5 text-xs font-medium ${
+              className={`flex flex-col gap-2 rounded-2xl p-3.5 text-xs font-medium ${
                 notice.type === 'success'
                   ? 'border border-forest-200 bg-forest-50 text-forest-900'
                   : 'border border-clay-200 bg-clay-50 text-clay-900'
               }`}
             >
-              {notice.type === 'success' ? (
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-forest-600" />
-              ) : (
-                <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-clay-600" />
+              <div className="flex items-start gap-2">
+                {notice.type === 'success' ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-forest-600" />
+                ) : (
+                  <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-clay-600" />
+                )}
+                <span>{notice.text}</span>
+              </div>
+              {notice.type === 'success' && (
+                <div className="pt-2 border-t border-forest-200/60 flex justify-end">
+                  <Button asChild size="sm" variant="secondary" className="text-xs font-bold">
+                    <Link to="/tourist/requests">View My Requests</Link>
+                  </Button>
+                </div>
               )}
-              <span>{notice.text}</span>
             </div>
           ) : null}
 
           {/* Contact summary */}
-          <div className="rounded-xl bg-sand/40 p-3 text-xs text-ink-700">
+          <div className="rounded-xl bg-sand/40 p-2.5 text-xs text-ink-700">
             <span className="font-medium text-ink-900">Requesting as:</span> {touristName} ({touristEmail})
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block space-y-1 text-xs">
-              <span className="font-medium text-ink-700">{config.dateLabel}</span>
-              <Input
-                type="date"
-                value={preferredDate}
-                onChange={(e) => setPreferredDate(e.target.value)}
-                className="h-9 text-xs"
-              />
-            </label>
+          {/* Offering Kind Specific Inputs */}
+          {offering.kind === 'stay' ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-1 text-xs">
+                <span className="font-medium text-ink-700">Check-in Date</span>
+                <Input
+                  type="date"
+                  required
+                  value={preferredDate}
+                  onChange={(e) => setPreferredDate(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </label>
 
+              <label className="block space-y-1 text-xs">
+                <span className="font-medium text-ink-700">Check-out Date</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </label>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-1 text-xs">
+                <span className="font-medium text-ink-700">{config.dateLabel}</span>
+                <Input
+                  type="date"
+                  required
+                  value={preferredDate}
+                  onChange={(e) => setPreferredDate(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </label>
+
+              <label className="block space-y-1 text-xs">
+                <span className="font-medium text-ink-700">{config.durationLabel}</span>
+                <Input
+                  type="text"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  placeholder={config.durationPlaceholder}
+                  className="h-9 text-xs"
+                />
+              </label>
+            </div>
+          )}
+
+          {/* Transport Specific Routing Inputs */}
+          {offering.kind === 'transport' && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-1 text-xs">
+                <span className="font-medium text-ink-700">Pickup Location / Landmark</span>
+                <Input
+                  type="text"
+                  placeholder="e.g. Birsa Munda Airport, Ranchi"
+                  value={pickupLocation}
+                  onChange={(e) => setPickupLocation(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </label>
+              <label className="block space-y-1 text-xs">
+                <span className="font-medium text-ink-700">Drop Destination</span>
+                <Input
+                  type="text"
+                  placeholder="e.g. Netarhat Forest Bungalow"
+                  value={dropDestination}
+                  onChange={(e) => setDropDestination(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </label>
+            </div>
+          )}
+
+          {/* Product Specific Address Input */}
+          {offering.kind === 'product' && (
             <label className="block space-y-1 text-xs">
-              <span className="font-medium text-ink-700">{config.durationLabel}</span>
+              <span className="font-medium text-ink-700">Delivery Address or Pickup Preference</span>
               <Input
                 type="text"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder={config.durationPlaceholder}
+                placeholder="Enter delivery pin code or mention store pickup"
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
                 className="h-9 text-xs"
               />
             </label>
-          </div>
+          )}
 
-          <label className="block space-y-1 text-xs">
-            <span className="font-medium text-ink-700">{config.participantsLabel}</span>
-            <Input
-              type="number"
-              min="1"
-              step="1"
-              value={participants}
-              onChange={(e) => setParticipants(e.target.value)}
-              className="h-9 text-xs"
-            />
-          </label>
+          {/* Quantity / Guests */}
+          <div className="grid gap-3 sm:grid-cols-2 items-center">
+            <label className="block space-y-1 text-xs">
+              <span className="font-medium text-ink-700">{config.participantsLabel}</span>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={participants}
+                onChange={(e) => setParticipants(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </label>
+
+            {estimatedTotal && (
+              <div className="rounded-xl bg-amber-50/70 p-2.5 border border-amber-200/80 text-right">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block">
+                  Estimated Total
+                </span>
+                <span className="text-sm font-bold text-ink-950">
+                  {formatIndianCurrency(estimatedTotal)}
+                </span>
+              </div>
+            )}
+          </div>
 
           <label className="block space-y-1 text-xs">
             <span className="font-medium text-ink-700">{config.messageLabel}</span>

@@ -149,6 +149,7 @@ export const partnerNavItems = [
 
 export const touristNavItems: NavItem[] = [
   { label: 'Dashboard', href: '/tourist', icon: Home },
+  { label: 'My Bookings', href: '/tourist/requests', icon: Calendar },
   { label: 'Explore', href: '/tourist/explore', icon: Compass },
   { label: 'Trips', href: '/tourist/itinerary', icon: MapPin },
   { label: 'Profile', href: '/tourist/profile', icon: Users },

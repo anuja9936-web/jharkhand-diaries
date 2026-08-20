@@ -4,27 +4,36 @@ import { Link } from 'react-router-dom';
 import { getSmartRecommendations } from '../../services/ai/aiService';
 import { DestinationCard } from '../destinations/DestinationCard';
 import { AddToTripModal } from '../destinations/AddToTripModal';
+import { useTranslation } from '../../i18n';
 import type { Destination } from '../../types/destination';
 import { Button } from '../ui';
 
+type RecTag = 'weekend' | 'family' | 'romantic' | 'budget' | 'eco' | 'culture' | 'adventure' | 'spiritual' | 'hidden';
+
 const RECOMMENDATION_TAGS: Array<{
-  id: 'weekend' | 'family' | 'eco' | 'culture' | 'adventure';
-  label: string;
+  id: RecTag;
+  labelEn: string;
+  labelHi: string;
   emoji: string;
 }> = [
-  { id: 'weekend', label: 'Weekend Escapes', emoji: '✨' },
-  { id: 'family', label: 'Family Friendly', emoji: '👨‍👩‍👧‍👦' },
-  { id: 'eco', label: 'Eco & Nature Retreats', emoji: '🌿' },
-  { id: 'culture', label: 'Cultural Immersion', emoji: '🥁' },
-  { id: 'adventure', label: 'Adventure & Hills', emoji: '⛺' },
+  { id: 'weekend', labelEn: 'Weekend Escapes', labelHi: 'सप्ताहांत भ्रमण', emoji: '✨' },
+  { id: 'family', labelEn: 'Family Friendly', labelHi: 'पारिवारिक पर्यटन', emoji: '👨‍👩‍👧‍👦' },
+  { id: 'romantic', labelEn: 'Romantic Gateways', labelHi: 'शांति एवं मनोरम', emoji: '🌄' },
+  { id: 'budget', labelEn: 'Budget Travel', labelHi: 'किफायती यात्रा', emoji: '💰' },
+  { id: 'eco', labelEn: 'Eco & Lakes', labelHi: 'प्रकृति एवं झीलें', emoji: '🌿' },
+  { id: 'culture', labelEn: 'Tribal Culture', labelHi: 'आदिवासी संस्कृति', emoji: '🥁' },
+  { id: 'adventure', labelEn: 'Adventure & Treks', labelHi: 'रोमांच एवं ट्रेक', emoji: '⛺' },
+  { id: 'spiritual', labelEn: 'Spiritual & Sacred', labelHi: 'आध्यात्मिक एवं तीर्थ', emoji: '🛕' },
+  { id: 'hidden', labelEn: 'Hidden Gems', labelHi: 'अनदेखे स्थल', emoji: '💎' },
 ];
 
 export function AISmartRecommendations({
   defaultTag = 'weekend',
 }: {
-  defaultTag?: 'weekend' | 'family' | 'eco' | 'culture' | 'adventure';
+  defaultTag?: RecTag;
 }) {
-  const [activeTag, setActiveTag] = useState(defaultTag);
+  const { language } = useTranslation();
+  const [activeTag, setActiveTag] = useState<RecTag>(defaultTag);
   const [tripModalDestination, setTripModalDestination] = useState<Destination | null>(null);
 
   const recommendation = getSmartRecommendations({ tag: activeTag });
@@ -45,7 +54,7 @@ export function AISmartRecommendations({
         <div className="space-y-1">
           <div className="flex items-center gap-1.5 text-xs font-bold text-forest-800">
             <Sparkles className="h-4 w-4 text-amber-500" />
-            <span>AI-Powered Recommendations</span>
+            <span>{language === 'hi' ? 'एआई स्मार्ट सिफारिशें' : 'AI-Powered Recommendations'}</span>
           </div>
           <h2 className="font-display text-2xl sm:text-3xl font-bold text-ink-950">
             {recommendation.title}
@@ -69,7 +78,7 @@ export function AISmartRecommendations({
               }`}
             >
               <span className="mr-1">{tag.emoji}</span>
-              <span>{tag.label}</span>
+              <span>{language === 'hi' ? tag.labelHi : tag.labelEn}</span>
             </button>
           ))}
         </div>
@@ -93,14 +102,22 @@ export function AISmartRecommendations({
             <Compass className="h-4 w-4" />
           </div>
           <div>
-            <p className="font-bold text-ink-950">Looking for a custom multi-day travel route?</p>
-            <p className="text-ink-600">Let our AI planner curate a day-by-day itinerary tailored to your schedule.</p>
+            <p className="font-bold text-ink-950">
+              {language === 'hi'
+                ? 'क्या आप बहु-दिवसीय यात्रा कार्यक्रम बनाना चाहते हैं?'
+                : 'Looking for a custom multi-day travel route?'}
+            </p>
+            <p className="text-ink-600">
+              {language === 'hi'
+                ? 'जोहार एआई प्लानर से अपनी पसंद के अनुसार व्यक्तिगत दिन-प्रतिदिन कार्यक्रम तैयार करें।'
+                : 'Let our AI planner curate a day-by-day itinerary tailored to your schedule.'}
+            </p>
           </div>
         </div>
 
         <Button asChild size="sm" className="bg-forest-900 text-white hover:bg-forest-800 font-bold shrink-0">
           <Link to="/plan-trip">
-            <span>Launch Itinerary Planner</span>
+            <span>{language === 'hi' ? 'यात्रा प्लानर खोलें' : 'Launch Itinerary Planner'}</span>
             <ExternalLink className="ml-1.5 h-3 w-3" />
           </Link>
         </Button>

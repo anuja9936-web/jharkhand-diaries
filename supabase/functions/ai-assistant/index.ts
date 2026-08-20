@@ -8,9 +8,15 @@ const corsHeaders = {
 
 interface ChatRequestBody {
   action: 'chat' | 'itinerary' | 'recommendations' | 'provider_writer' | 'admin_insights';
+  language?: 'en' | 'hi';
   messages?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   prompt?: string;
   userLocation?: string;
+  touristPreferences?: {
+    preferredInterests?: string[];
+    preferredBudget?: string;
+    preferredTravelStyle?: string;
+  };
   context?: {
     destinations?: Array<{ name: string; slug: string; district: string; category: string; description?: string }>;
     offerings?: Array<{ name: string; kind: string; district: string; price?: number }>;
@@ -65,24 +71,33 @@ Deno.serve(async (req) => {
 
     const body: ChatRequestBody = await req.json().catch(() => ({ action: 'chat' }));
     const action = body.action || 'chat';
+    const lang = body.language || 'en';
 
-    // System prompt grounding
+    // System prompt grounding with Multilingual support
     const baseSystemPrompt = `You are "Johar AI — Jharkhand Tourism Assistant", the official AI travel intelligence guide for the state of Jharkhand, India (celebrated for its 24 districts, waterfalls, Betla National Park, Dalma Wildlife Sanctuary, Netarhat hill station, Patratu Valley, Baidyanath Jyotirlinga Dham, Sohrai GI-tagged mural art, and rich tribal heritage).
 
-CRITICAL CONVERSATIONAL & GROUNDING RULES:
-1. NATURAL-LANGUAGE INTENT HANDLING:
+CRITICAL CONVERSATIONAL, MULTILINGUAL & GROUNDING RULES:
+1. MULTILINGUAL & HINDI SUPPORT:
+   - Current user interface language: ${lang === 'hi' ? 'HINDI (हिन्दी)' : 'ENGLISH'}.
+   - If language is 'hi' OR the user query is written in Hindi/Devanagari, respond completely in authentic, warm, and natural Hindi (Devanagari script).
+   - If user asks in Hinglish (e.g. "Ranchi ke paas 3 hour ke liye kaha ja sakte hain?"), understand the question accurately and respond in the user's selected language (${lang}).
+   - Always preserve proper nouns and destination names cleanly (e.g. Ranchi / रांची, Hundru Falls / हुंडरू जलप्रपात, Dassam Falls / दशम फॉल्स, Netarhat / नेतरहाट, Betla / बेतला, Sohrai / सोहराई, Patratu Valley / पतरातू घाटी, Baidyanath Dham / बैद्यनाथ धाम, Dhuska / धुस्का, Rugra / रुगड़ा).
+
+2. NATURAL-LANGUAGE INTENT & REFINEMENT:
    - Accurately understand travel duration, starting locations, group styles, budgets, and themes from user queries.
-   - If the user asks for short-duration trips (e.g. "where can I go for a 3 hour journey", "half day trip", "places near me") and their starting location is NOT specified or known from conversation context, ask a concise, friendly follow-up question:
-     "Sure! I can suggest a few great short trips in Jharkhand. Where will you be starting from — Ranchi, Jamshedpur, Deoghar, Dhanbad, or another location?"
-   - If the starting location is known (e.g. "from Ranchi", "near Jamshedpur"), directly recommend realistic excursions within that travel duration (approximate travel time & distance, e.g. "~45 mins drive / 35 km").
-   - If the user asks about waterfalls, tribal arts, pilgrimage, or wildlife, recommend authentic destinations matching those categories from the dataset.
-2. GROUNDING & ANTI-HALLUCINATION:
+   - If the user asks for short-duration trips (e.g. "where can I go for a 3 hour journey", "रांची के पास 3 घंटे के लिए कहाँ जा सकते हैं?") and their starting location is NOT specified or known from conversation context, ask a concise follow-up question:
+     ${lang === 'hi' ? '"ज़रूर! मैं झारखंड में कई बेहतरीन लघु यात्राएं सुझा सकता हूँ। आप अपनी यात्रा कहाँ से शुरू करेंगे — रांची, जमशेदपुर, देवघर, धनबाद या किसी अन्य जिले से?"' : '"Sure! I can suggest several great short trips in Jharkhand. Where will you be starting from — Ranchi, Jamshedpur, Deoghar, Dhanbad, or another location?"'}
+   - If the starting location is known, directly recommend realistic excursions within that travel duration (approximate travel time & distance, e.g. "~45 mins drive / 35 km").
+   - Follow-up questions: If the user says "I want something peaceful" or "What about waterfalls?", refine the previously suggested recommendations smoothly.
+
+3. GROUNDING & ANTI-HALLUCINATION:
    - Ground your recommendations in authentic Jharkhand geography across its 24 districts.
    - Use only verified destinations, stays, and experiences provided in the context whenever available.
    - If travel times are approximate, explicitly state that they are approximate. Never invent fake transport or non-existent hotels.
    - If an inquiry asks about places outside Jharkhand, politely clarify and offer Jharkhand counterparts.
-3. TONE & CULTURAL RESPECT:
-   - Warm, knowledgeable, and hospitable with the traditional Jharkhandi greeting "Johar!".
+
+4. TONE & CULTURAL RESPECT:
+   - Warm, knowledgeable, and hospitable with the traditional Jharkhandi greeting "Johar!" / "जोहार!".
    - Emphasize responsible eco-tourism and cultural respect for tribal heritage and sacred groves (Sarna Sthal).
    - Mention active government safety advisories if applicable.`;
 
@@ -92,6 +107,9 @@ CRITICAL CONVERSATIONAL & GROUNDING RULES:
     if (action === 'chat') {
       const userMessages = body.messages || [{ role: 'user', content: body.prompt || 'Johar!' }];
       const locationContext = body.userLocation ? `\nUser's Current Location/Gateway: ${body.userLocation}` : '';
+      const preferencesContext = body.touristPreferences
+        ? `\nTourist Preferences: Interests: ${body.touristPreferences.preferredInterests?.join(', ') || 'General'}, Budget: ${body.touristPreferences.preferredBudget || 'Moderate'}, Style: ${body.touristPreferences.preferredTravelStyle || 'Balanced'}`
+        : '';
       const contextSummary = body.context
         ? `\n\nAVAILABLE VERIFIED CONTEXT:\nDestinations: ${JSON.stringify(body.context.destinations || [])}\nOfferings & Stays: ${JSON.stringify(body.context.offerings || [])}\nActive Safety Alerts: ${JSON.stringify(body.context.alerts || [])}`
         : '';
@@ -99,7 +117,7 @@ CRITICAL CONVERSATIONAL & GROUNDING RULES:
       messagesToSend = [
         {
           role: 'system',
-          content: `${baseSystemPrompt}\n\nYou are having a conversational travel discovery chat. Provide rich, formatted markdown advice with bullet points for attractions, travel time estimates, cultural notes, and local cuisine.${locationContext}${contextSummary}`,
+          content: `${baseSystemPrompt}\n\nYou are having a conversational travel discovery chat. Provide rich, formatted markdown advice with bullet points for attractions, travel time estimates, cultural notes, and local cuisine.${locationContext}${preferencesContext}${contextSummary}`,
         },
         ...userMessages,
       ];
@@ -148,7 +166,10 @@ Return ONLY valid JSON matching this exact JSON Schema (no markdown code blocks,
           "description": "string",
           "destinationSlug": "string (slug from context if matching)",
           "activityType": "sightseeing" | "adventure" | "culture" | "dining" | "relaxation",
-          "durationHours": number
+          "durationHours": number,
+          "approxTravelTime": "string",
+          "estimatedCost": number,
+          "reason": "string"
         }
       ],
       "recommendedStayName": "string",
@@ -157,13 +178,15 @@ Return ONLY valid JSON matching this exact JSON Schema (no markdown code blocks,
       "localTips": ["string"]
     }
   ],
+  "bestSeason": "string",
+  "importantTravelNotes": ["string"],
   "activeAdvisories": ["string"],
   "curatorNote": "string"
 }${contextSummary}`,
         },
         {
           role: 'user',
-          content: `Create a ${input.days}-day itinerary starting from ${input.startLocation} for ${input.travellerType} travelers with a ${input.budgetTier} budget, ${input.travelIntensity} pace, and interests in: ${input.interests.join(', ')}.`,
+          content: `Create a ${input.days}-day itinerary starting from ${input.startLocation} for ${input.travellerType} travelers with a ${input.budgetTier} budget, ${input.travelIntensity} pace, and interests in: ${input.interests.join(', ')}. Language: ${lang}.`,
         },
       ];
       responseFormat = { type: 'json_object' };
@@ -186,12 +209,14 @@ Return ONLY valid JSON with this exact structure:
   "shortDescription": "string (1-2 sentences for cards)",
   "detailedDescription": "string (2-3 paragraphs showcasing local culture, comfort, and authenticity)",
   "amenitiesOrHighlights": ["string", "string", "string", "string"],
+  "shortPromoDescription": "string (1 punchy line for social / banner promo)",
+  "seoDescription": "string (150-160 char meta description)",
   "safetyNotes": "string"
 }`,
         },
         {
           role: 'user',
-          content: `Generate listing content for a ${input.kind} titled "${input.title}" located in ${input.district} with highlights: "${input.keyHighlights}".`,
+          content: `Generate listing content for a ${input.kind} titled "${input.title}" located in ${input.district} with highlights: "${input.keyHighlights}". Language: ${lang}.`,
         },
       ];
       responseFormat = { type: 'json_object' };
@@ -208,11 +233,12 @@ Return ONLY valid JSON with this exact structure:
           role: 'system',
           content: `${baseSystemPrompt}
 You are a strategic tourism governance AI analyst for the Department of Tourism, Government of Jharkhand.
-Analyze the administrative summary and return ONLY valid JSON with this structure:
+Analyze the administrative summary across 24 districts, seasonal trends, visitor safety alerts, and artisan craft demand.
+Return ONLY valid JSON with this structure:
 {
   "insights": [
     {
-      "category": "growth" | "eco_alert" | "artisan" | "demand",
+      "category": "growth" | "eco_alert" | "artisan" | "demand" | "seasonal",
       "title": "string",
       "insight": "string",
       "actionRecommendation": "string",
@@ -223,7 +249,7 @@ Analyze the administrative summary and return ONLY valid JSON with this structur
         },
         {
           role: 'user',
-          content: `Analyze Jharkhand tourism dashboard data: Total Destinations: ${input.totalDestinations}, Registered Providers: ${input.totalProviders}, Published Offerings: ${input.totalOfferings}, Pending Feedback: ${input.pendingFeedbackCount}.`,
+          content: `Analyze Jharkhand tourism dashboard data: Total Destinations: ${input.totalDestinations}, Registered Providers: ${input.totalProviders}, Published Offerings: ${input.totalOfferings}, Pending Feedback: ${input.pendingFeedbackCount}. Language: ${lang}.`,
         },
       ];
       responseFormat = { type: 'json_object' };

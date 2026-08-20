@@ -35,6 +35,7 @@ import {
   TouristARPage,
 } from '../pages/tourist/TouristPages';
 import { TouristDashboardPage } from '../pages/tourist/TouristDashboardPage';
+import { TouristBookingsPage } from '../pages/tourist/TouristBookingsPage';
 import { TouristProfilePage } from '../pages/tourist/TouristProfilePage';
 import { TouristTripDetailPage } from '../pages/tourist/TouristTripDetailPage';
 import { TouristTripFormPage } from '../pages/tourist/TouristTripFormPage';
@@ -150,6 +151,8 @@ export function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<TouristDashboardPage />} />
+        <Route path="requests" element={<TouristBookingsPage />} />
+        <Route path="bookings" element={<TouristBookingsPage />} />
         <Route path="explore" element={<TouristExplorePage />} />
         <Route path="itinerary" element={<TouristTripsPage />} />
         <Route path="itinerary/new" element={<TouristTripFormPage />} />

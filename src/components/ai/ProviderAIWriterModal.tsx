@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Check, Sparkles, Wand2, X } from 'lucide-react';
 import { generateProviderContent, type ProviderContentOutput } from '../../services/ai/aiService';
+import { useTranslation } from '../../i18n';
 import { Button, Input } from '../ui';
 
 export function ProviderAIWriterModal({
@@ -19,6 +20,7 @@ export function ProviderAIWriterModal({
     highlights?: string[];
   }) => void;
 }) {
+  const { language, t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [titleInput, setTitleInput] = useState(currentTitle);
   const [highlightsInput, setHighlightsInput] = useState('');
@@ -33,6 +35,7 @@ export function ProviderAIWriterModal({
         title: titleInput || 'Authentic Local Offering',
         district,
         keyHighlights: highlightsInput || 'high quality local service',
+        language,
       });
       setGeneratedResult(result);
     } catch (err) {
@@ -66,7 +69,7 @@ export function ProviderAIWriterModal({
         className="inline-flex items-center gap-1.5 text-xs font-bold border-amber-300 bg-amber-50/70 text-amber-900 hover:bg-amber-100"
       >
         <Sparkles className="h-3.5 w-3.5 text-amber-600" />
-        <span>AI Writer Assistant</span>
+        <span>{t('provider.aiWriter', 'AI Writer Assistant')}</span>
       </Button>
 
       {isOpen && (
@@ -80,10 +83,10 @@ export function ProviderAIWriterModal({
                 </div>
                 <div>
                   <h3 className="font-display text-sm font-bold text-ink-950">
-                    Provider AI Content Generator
+                    {t('provider.aiModalTitle', 'Provider AI Content Generator')}
                   </h3>
                   <p className="text-[11px] text-ink-500 capitalize">
-                    Craft SEO-friendly, authentic descriptions for {kind} listings
+                    {t('provider.aiModalDesc', `Craft SEO-friendly, authentic descriptions for ${kind} listings`)}
                   </p>
                 </div>
               </div>
@@ -101,7 +104,7 @@ export function ProviderAIWriterModal({
               <div className="space-y-3 bg-white p-4 rounded-2xl border border-ink-200/80">
                 <div>
                   <label className="block text-[11px] font-bold text-ink-700 uppercase tracking-wider mb-1">
-                    Listing Title or Concept
+                    {language === 'hi' ? 'लिस्टिंग का शीर्षक या अवधारणा' : 'Listing Title or Concept'}
                   </label>
                   <Input
                     type="text"
@@ -114,7 +117,7 @@ export function ProviderAIWriterModal({
 
                 <div>
                   <label className="block text-[11px] font-bold text-ink-700 uppercase tracking-wider mb-1">
-                    Key Features / Notes (Optional)
+                    {language === 'hi' ? 'मुख्य विशेषताएं / विवरण (वैकल्पिक)' : 'Key Features / Notes (Optional)'}
                   </label>
                   <Input
                     type="text"
@@ -132,7 +135,11 @@ export function ProviderAIWriterModal({
                   className="w-full bg-forest-900 text-white font-bold text-xs py-2.5 rounded-xl"
                 >
                   <Sparkles className="h-3.5 w-3.5 mr-1 text-amber-400" />
-                  <span>{isGenerating ? 'Enhancing with Johar AI & Groq...' : 'Generate Description'}</span>
+                  <span>
+                    {isGenerating
+                      ? (language === 'hi' ? 'जोहार एआई से विवरण तैयार हो रहा है...' : 'Enhancing with Johar AI & Groq...')
+                      : (language === 'hi' ? 'विवरण तैयार करें' : 'Generate Description')}
+                  </span>
                 </Button>
               </div>
 
@@ -142,7 +149,7 @@ export function ProviderAIWriterModal({
                   <div className="flex items-center justify-between border-b border-ink-200/70 pb-2">
                     <span className="font-bold text-ink-950 text-xs flex items-center gap-1.5">
                       <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                      <span>AI Generated Preview</span>
+                      <span>{language === 'hi' ? 'एआई जनरेटेड पूर्वावलोकन' : 'AI Generated Preview'}</span>
                     </span>
                     <span className="text-[10px] text-forest-700 font-semibold">
                       {generatedResult.modelUsed ? `✦ ${generatedResult.modelUsed}` : 'Review & Edit before applying'}
@@ -150,22 +157,30 @@ export function ProviderAIWriterModal({
                   </div>
 
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">Enhanced Title</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">
+                      {language === 'hi' ? 'उन्नत शीर्षक' : 'Enhanced Title'}
+                    </p>
                     <p className="font-bold text-ink-900 text-xs">{generatedResult.enhancedTitle}</p>
                   </div>
 
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">Short Summary</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">
+                      {language === 'hi' ? 'संक्षिप्त विवरण' : 'Short Summary'}
+                    </p>
                     <p className="text-xs text-ink-700">{generatedResult.shortDescription}</p>
                   </div>
 
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">Detailed Story</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">
+                      {language === 'hi' ? 'विस्तृत कहानी' : 'Detailed Story'}
+                    </p>
                     <p className="text-xs text-ink-700 leading-relaxed">{generatedResult.detailedDescription}</p>
                   </div>
 
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">Suggested Highlights</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">
+                      {language === 'hi' ? 'सुझाए गए मुख्य बिंदु' : 'Suggested Highlights'}
+                    </p>
                     <ul className="list-disc list-inside text-xs text-ink-700 space-y-0.5">
                       {generatedResult.amenitiesOrHighlights.map((h, i) => (
                         <li key={i}>{h}</li>
@@ -181,7 +196,7 @@ export function ProviderAIWriterModal({
                       onClick={() => setIsOpen(false)}
                       className="text-xs"
                     >
-                      Cancel
+                      {t('common.cancel', 'Cancel')}
                     </Button>
                     <Button
                       type="button"
@@ -190,7 +205,7 @@ export function ProviderAIWriterModal({
                       className="bg-forest-900 text-white hover:bg-forest-800 font-bold text-xs"
                     >
                       <Check className="h-3.5 w-3.5 mr-1" />
-                      <span>Apply to Form</span>
+                      <span>{t('provider.applyToForm', 'Apply to Form')}</span>
                     </Button>
                   </div>
                 </div>

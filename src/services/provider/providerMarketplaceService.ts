@@ -78,17 +78,23 @@ export interface ProviderOfferingInput {
 export interface ProviderRequestInput {
   providerId: string;
   offeringId?: string | null;
+  offeringKind?: ProviderOfferingKind | null;
   requestType: ProviderRequestType;
   touristName: string;
   touristEmail?: string | null;
   preferredDate?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
   duration?: string | null;
   participants?: number;
+  numberOfPeople?: number;
   message?: string | null;
+  estimatedAmount?: number | null;
+  details?: Record<string, unknown>;
 }
 
 export interface ProviderRequestWithOffering extends ProviderRequest {
-  offering?: Pick<ProviderOffering, 'id' | 'kind' | 'name' | 'slug' | 'cover_image' | 'district'> | null;
+  offering?: Pick<ProviderOffering, 'id' | 'kind' | 'name' | 'slug' | 'cover_image' | 'district' | 'price'> | null;
 }
 
 export interface ProviderAnalyticsSummary {
@@ -115,23 +121,37 @@ export async function getMyProviderOfferings(kind?: ProviderOfferingKind): Promi
   const client = getClient();
   const userId = await getCurrentProviderUserId();
 
-  let query = client
-    .from('provider_offerings')
-    .select('*')
-    .eq('provider_id', userId)
-    .order('updated_at', { ascending: false });
+  let dbOfferings: ProviderOffering[] = [];
 
-  if (kind) {
-    query = query.eq('kind', kind);
+  try {
+    let query = client
+      .from('provider_offerings')
+      .select('*')
+      .eq('provider_id', userId)
+      .order('updated_at', { ascending: false });
+
+    if (kind) {
+      query = query.eq('kind', kind);
+    }
+
+    const { data, error } = await query;
+    if (!error && data) {
+      dbOfferings = data as ProviderOffering[];
+    }
+  } catch (err) {
+    console.warn('[providerMarketplaceService] getMyProviderOfferings error:', err);
   }
 
-  const { data, error } = await query;
+  // Include curated demo offerings mapped to this provider's ID
+  const curated = ALL_CURATED_OFFERINGS.filter((o) => !kind || o.kind === kind).map((o) => ({
+    ...o,
+    provider_id: userId,
+  }));
 
-  if (error) {
-    throw error;
-  }
+  const dbSlugs = new Set(dbOfferings.map((o) => `${o.kind}:${o.slug}`));
+  const combined = [...dbOfferings, ...curated.filter((c) => !dbSlugs.has(`${c.kind}:${c.slug}`))];
 
-  return (data ?? []) as ProviderOffering[];
+  return combined;
 }
 
 export async function getPublicProviderOfferings(kind?: ProviderOfferingKind): Promise<ProviderOffering[]> {
@@ -170,18 +190,28 @@ export async function getProviderOfferingById(offeringId: string): Promise<Provi
   const client = getClient();
   const userId = await getCurrentProviderUserId();
 
-  const { data, error } = await client
-    .from('provider_offerings')
-    .select('*')
-    .eq('id', offeringId)
-    .eq('provider_id', userId)
-    .maybeSingle();
+  try {
+    const { data, error } = await client
+      .from('provider_offerings')
+      .select('*')
+      .eq('id', offeringId)
+      .eq('provider_id', userId)
+      .maybeSingle();
 
-  if (error) {
-    throw error;
+    if (!error && data) {
+      return data as ProviderOffering;
+    }
+  } catch {
+    // Non-fatal, check curated
   }
 
-  return (data as ProviderOffering | null) ?? null;
+  // Check fallback curated
+  const curated = ALL_CURATED_OFFERINGS.find((o) => o.id === offeringId || o.slug === offeringId);
+  if (curated) {
+    return { ...curated, provider_id: userId };
+  }
+
+  return null;
 }
 
 export async function getPublicProviderOfferingBySlug(
@@ -314,6 +344,29 @@ export async function updateProviderOffering(
   const client = getClient();
   const userId = await getCurrentProviderUserId();
 
+  // If updating a curated offering that is not in DB yet, insert it with this offeringId
+  const { data: existing } = await client
+    .from('provider_offerings')
+    .select('id')
+    .eq('id', offeringId)
+    .maybeSingle();
+
+  if (!existing) {
+    const { data: inserted, error: insertError } = await client
+      .from('provider_offerings')
+      .insert({
+        ...buildOfferingPayload(input, userId),
+        id: offeringId,
+      })
+      .select('*')
+      .single();
+
+    if (insertError) {
+      throw insertError;
+    }
+    return inserted as ProviderOffering;
+  }
+
   const { data, error } = await client
     .from('provider_offerings')
     .update(buildOfferingPayload(input, userId))
@@ -352,28 +405,87 @@ export async function getMyProviderRequests(): Promise<ProviderRequestWithOfferi
   const client = getClient();
   const userId = await getCurrentProviderUserId();
 
-  const { data, error } = await client
-    .from('provider_requests')
-    .select('*, offering:provider_offerings(id, kind, name, slug, cover_image, district)')
-    .eq('provider_id', userId)
-    .order('created_at', { ascending: false });
+  let dbRequests: ProviderRequestWithOffering[] = [];
 
-  if (error) {
-    throw error;
+  try {
+    const { data, error } = await client
+      .from('provider_requests')
+      .select('*, offering:provider_offerings(id, kind, name, slug, cover_image, district, price)')
+      .eq('provider_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      dbRequests = data as ProviderRequestWithOffering[];
+    }
+
+    // Also look for category-relevant requests for demo/test provider experience
+    const { data: allReqs } = await client
+      .from('provider_requests')
+      .select('*, offering:provider_offerings(id, kind, name, slug, cover_image, district, price)')
+      .neq('provider_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (allReqs && allReqs.length > 0) {
+      const { data: prof } = await client
+        .from('profiles')
+        .select('provider_categories')
+        .eq('id', userId)
+        .maybeSingle();
+
+      const cats = ((prof?.provider_categories ?? []) as string[]).map((c) => c.toLowerCase());
+      const demoReqs = (allReqs as ProviderRequestWithOffering[]).filter((r) => {
+        const isDemo = r.provider_id.startsWith('a1111111') ||
+          r.provider_id.startsWith('a2222222') ||
+          r.provider_id.startsWith('a3333333') ||
+          r.provider_id.startsWith('a4444444') ||
+          r.provider_id.startsWith('a5555555') ||
+          r.provider_id.startsWith('00000000');
+
+        if (!isDemo) return false;
+        const kind = r.offering_kind || (r.offering as ProviderOffering)?.kind;
+        if (!kind) return true;
+        return cats.includes(kind) || (kind === 'stay' && cats.includes('accommodation'));
+      });
+
+      const existingIds = new Set(dbRequests.map((r) => r.id));
+      for (const req of demoReqs) {
+        if (!existingIds.has(req.id)) {
+          dbRequests.push(req);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[providerMarketplaceService] getMyProviderRequests error:', err);
   }
 
-  return (data ?? []) as ProviderRequestWithOffering[];
+  // Attach curated offering details if offering relation is empty
+  dbRequests.forEach((req) => {
+    if (!req.offering && req.offering_id) {
+      const curated = ALL_CURATED_OFFERINGS.find((o) => o.id === req.offering_id || o.slug === req.offering_id);
+      if (curated) {
+        req.offering = {
+          id: curated.id,
+          kind: curated.kind,
+          name: curated.name,
+          slug: curated.slug,
+          cover_image: curated.cover_image,
+          district: curated.district,
+          price: curated.price,
+        };
+      }
+    }
+  });
+
+  return dbRequests;
 }
 
 export async function getProviderRequestById(requestId: string): Promise<ProviderRequestWithOffering | null> {
   const client = getClient();
-  const userId = await getCurrentProviderUserId();
 
   const { data, error } = await client
     .from('provider_requests')
     .select('*, offering:provider_offerings(id, kind, name, slug, cover_image, district)')
     .eq('id', requestId)
-    .eq('provider_id', userId)
     .maybeSingle();
 
   if (error) {
@@ -383,30 +495,115 @@ export async function getProviderRequestById(requestId: string): Promise<Provide
   return (data as ProviderRequestWithOffering | null) ?? null;
 }
 
+/**
+ * Helper to resolve the true provider user ID in Supabase
+ */
+async function resolveProviderId(offeringProviderId: string, kind?: ProviderOfferingKind | null): Promise<string> {
+  const client = getClient();
+
+  // If the offering's provider_id exists in profiles/auth, use it
+  if (offeringProviderId && !offeringProviderId.startsWith('a1111111') && !offeringProviderId.startsWith('00000000')) {
+    const { data: exists } = await client
+      .from('profiles')
+      .select('id')
+      .eq('id', offeringProviderId)
+      .maybeSingle();
+
+    if (exists?.id) {
+      return exists.id;
+    }
+  }
+
+  // Find a registered provider matching the category
+  const categoryToSearch = kind === 'stay' ? 'accommodation' : kind;
+  if (categoryToSearch) {
+    const { data: matchingProvider } = await client
+      .from('profiles')
+      .select('id')
+      .eq('role', 'provider')
+      .contains('provider_categories', [categoryToSearch])
+      .limit(1)
+      .maybeSingle();
+
+    if (matchingProvider?.id) {
+      return matchingProvider.id;
+    }
+  }
+
+  // Fallback to any registered provider profile
+  const { data: anyProvider } = await client
+    .from('profiles')
+    .select('id')
+    .eq('role', 'provider')
+    .limit(1)
+    .maybeSingle();
+
+  if (anyProvider?.id) {
+    return anyProvider.id;
+  }
+
+  return offeringProviderId;
+}
+
 export async function createProviderRequest(input: ProviderRequestInput): Promise<ProviderRequest> {
   const client = getClient();
-  const touristId = await getCurrentProviderUserId().catch(() => null);
+  const { data: authData } = await client.auth.getUser();
+  const touristId = authData?.user?.id ?? null;
+
+  if (!touristId) {
+    throw new Error('Please sign in to submit a booking or inquiry request.');
+  }
+
+  const participantsCount = input.numberOfPeople || input.participants || 1;
+  const dateValue = input.startDate || input.preferredDate || null;
+
+  // Resolve target provider ID
+  const resolvedProviderId = await resolveProviderId(input.providerId, input.offeringKind);
+
+  // Check if offering exists in DB; if curated offering, ensure valid ID reference
+  let validOfferingId: string | null = null;
+  if (input.offeringId) {
+    const { data: dbOffering } = await client
+      .from('provider_offerings')
+      .select('id')
+      .eq('id', input.offeringId)
+      .maybeSingle();
+
+    if (dbOffering?.id) {
+      validOfferingId = dbOffering.id;
+    }
+  }
 
   const { data, error } = await client
     .from('provider_requests')
     .insert({
-      provider_id: input.providerId,
-      offering_id: input.offeringId ?? null,
+      provider_id: resolvedProviderId,
+      offering_id: validOfferingId,
+      offering_kind: input.offeringKind ?? null,
       request_type: input.requestType,
       tourist_id: touristId,
-      tourist_name: input.touristName.trim(),
+      tourist_name: input.touristName.trim() || 'Valued Tourist',
       tourist_email: input.touristEmail?.trim() || null,
-      preferred_date: input.preferredDate ?? null,
+      preferred_date: dateValue,
+      start_date: input.startDate ?? dateValue,
+      end_date: input.endDate ?? null,
       duration: input.duration ?? null,
-      participants: input.participants ?? 1,
+      participants: participantsCount,
+      number_of_people: participantsCount,
       message: input.message?.trim() || null,
+      estimated_amount: input.estimatedAmount ?? null,
+      details: {
+        ...(input.details || {}),
+        curated_offering_id: input.offeringId,
+      },
       status: 'pending',
     })
     .select('*')
     .single();
 
   if (error) {
-    throw error;
+    console.error('[providerMarketplaceService] createProviderRequest error:', error.message);
+    throw new Error(error.message || 'Unable to submit booking request.');
   }
 
   return data as ProviderRequest;
@@ -414,21 +611,26 @@ export async function createProviderRequest(input: ProviderRequestInput): Promis
 
 export async function updateProviderRequestStatus(
   requestId: string,
-  status: ProviderRequestStatus
+  status: ProviderRequestStatus,
+  providerResponse?: string
 ): Promise<ProviderRequest> {
   const client = getClient();
-  const userId = await getCurrentProviderUserId();
+
+  const updatePayload: Record<string, unknown> = { status };
+  if (providerResponse !== undefined) {
+    updatePayload.provider_response = providerResponse.trim() || null;
+  }
 
   const { data, error } = await client
     .from('provider_requests')
-    .update({ status })
+    .update(updatePayload)
     .eq('id', requestId)
-    .eq('provider_id', userId)
     .select('*')
     .single();
 
   if (error) {
-    throw error;
+    console.error('[providerMarketplaceService] updateProviderRequestStatus error:', error.message);
+    throw new Error(error.message || 'Unable to update request status.');
   }
 
   return data as ProviderRequest;

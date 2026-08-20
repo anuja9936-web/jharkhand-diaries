@@ -75,7 +75,6 @@ const MARKETPLACE_CONFIG: Record<ProviderOfferingKind, MarketplaceConfig> = {
 };
 
 const PROVIDER_STATUS_OPTIONS: ProviderOfferingStatus[] = ['draft', 'published', 'archived'];
-const REQUEST_STATUS_OPTIONS: ProviderRequestStatus[] = ['pending', 'accepted', 'rejected', 'completed', 'cancelled'];
 
 function slugify(value: string) {
   return value
@@ -986,6 +985,7 @@ function RequestsPage() {
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | ProviderRequestStatus>('all');
 
   const loadRequests = async () => {
     try {
@@ -1010,14 +1010,15 @@ function RequestsPage() {
       pending: requests.filter((item) => item.status === 'pending').length,
       accepted: requests.filter((item) => item.status === 'accepted').length,
       completed: requests.filter((item) => item.status === 'completed').length,
+      rejected: requests.filter((item) => item.status === 'rejected').length,
     };
   }, [requests]);
 
-  const handleStatusChange = async (requestId: string, status: ProviderRequestStatus) => {
+  const handleStatusChange = async (requestId: string, status: ProviderRequestStatus, responseMsg?: string) => {
     setUpdatingId(requestId);
 
     try {
-      await updateProviderRequestStatus(requestId, status);
+      await updateProviderRequestStatus(requestId, status, responseMsg);
       await loadRequests();
     } catch (updateError) {
       setNotice(updateError instanceof Error ? updateError.message : 'Unable to update request.');
@@ -1026,16 +1027,21 @@ function RequestsPage() {
     }
   };
 
+  const filteredRequests = requests.filter((item) => {
+    if (activeTab === 'all') return true;
+    return item.status === activeTab;
+  });
+
   if (loading) {
     return <LoadingState label="Loading provider requests..." />;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       <PageHeader
         eyebrow="Requests"
-        title="Learning, booking, and order requests"
-        description="Track incoming enquiries from tourists and manage them with a simple status flow."
+        title="Tourist Bookings & Service Inquiries"
+        description="Review, accept, or decline reservations for your accommodations, tours, transport, experiences, and products."
         actions={
           <Button asChild variant="secondary">
             <Link to="/provider/dashboard">Back to Dashboard</Link>
@@ -1043,45 +1049,67 @@ function RequestsPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <StatCard label="Pending" value={String(stats.pending)} detail="Awaiting your action" icon={Sparkles} />
-        <StatCard label="Accepted" value={String(stats.accepted)} detail="Confirmed requests" icon={CheckCircle2} />
-        <StatCard label="Completed" value={String(stats.completed)} detail="Marked complete" icon={Save} />
+      <div className="grid gap-4 md:grid-cols-4">
+        <StatCard label="Pending" value={String(stats.pending)} detail="Awaiting your response" icon={Sparkles} />
+        <StatCard label="Accepted" value={String(stats.accepted)} detail="Confirmed reservations" icon={CheckCircle2} />
+        <StatCard label="Completed" value={String(stats.completed)} detail="Fulfilled services" icon={Save} />
+        <StatCard label="Declined" value={String(stats.rejected)} detail="Rejected requests" icon={ArrowLeft} />
       </div>
 
       {notice ? (
         <ErrorState
-          title="Unable to load requests"
-          message={`This section will populate once the provider request table is available. ${notice}`}
+          title="Notice"
+          message={notice}
         />
       ) : null}
 
-      {requests.length === 0 ? (
+      {/* Filter Tabs */}
+      <div className="flex flex-wrap gap-2 border-b border-ink-200 pb-3">
+        {[
+          { id: 'all' as const, label: 'All Requests', count: requests.length },
+          { id: 'pending' as const, label: 'New / Pending', count: stats.pending },
+          { id: 'accepted' as const, label: 'Accepted', count: stats.accepted },
+          { id: 'completed' as const, label: 'Completed', count: stats.completed },
+          { id: 'rejected' as const, label: 'Rejected', count: stats.rejected },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+              activeTab === tab.id
+                ? 'bg-forest-900 text-white shadow-xs'
+                : 'bg-white text-ink-700 hover:bg-sand border border-ink-200/80'
+            }`}
+          >
+            <span>{tab.label}</span>
+            <span
+              className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                activeTab === tab.id ? 'bg-forest-700 text-white' : 'bg-sand text-ink-600'
+              }`}
+            >
+              {tab.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {filteredRequests.length === 0 ? (
         <EmptyState
-          title="No requests yet"
-          message="Once tourists start requesting lessons, bookings, or purchases, they’ll appear here."
-          actionLabel="View dashboard"
+          title="No requests in this view"
+          message="When tourists send enquiries or booking requests for your listings, they will appear here in real time."
+          actionLabel="View Dashboard"
           actionHref="/provider/dashboard"
         />
       ) : (
         <div className="space-y-4">
-          {requests.map((request) => (
-            <div key={request.id} className="space-y-3">
-              <ProviderRequestCard request={request} />
-              <div className="flex flex-wrap gap-2">
-                {REQUEST_STATUS_OPTIONS.map((status) => (
-                  <Button
-                    key={status}
-                    type="button"
-                    variant={request.status === status ? 'primary' : 'secondary'}
-                    disabled={updatingId === request.id || request.status === status}
-                    onClick={() => handleStatusChange(request.id, status)}
-                  >
-                    {status}
-                  </Button>
-                ))}
-              </div>
-            </div>
+          {filteredRequests.map((request) => (
+            <ProviderRequestCard
+              key={request.id}
+              request={request}
+              isUpdating={updatingId === request.id}
+              onStatusChange={handleStatusChange}
+            />
           ))}
         </div>
       )}

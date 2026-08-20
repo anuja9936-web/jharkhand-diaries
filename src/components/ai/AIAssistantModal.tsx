@@ -9,32 +9,48 @@ import {
   X,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { generateAITravelResponse, type AIMessage } from '../../services/ai/aiService';
+import { generateAITravelResponse, type AIMessage, type TouristPreferences } from '../../services/ai/aiService';
+import { useTranslation } from '../../i18n';
 import { Button, Input } from '../ui';
 import { formatIndianCurrency } from '../../lib/utils';
 
 export function AIAssistantModal() {
+  const { language, t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userGateway, setUserGateway] = useState<string>('Ranchi');
-  const [messages, setMessages] = useState<AIMessage[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: `**Johar!** I am your **Jharkhand Diaries AI Travel Assistant** ✦\n\nI can help you explore 24 districts, plan short 2–3 hour getaways, find waterfalls, discover Sohrai art, and curate personalized multi-day circuits.`,
-      timestamp: new Date().toISOString(),
-      quickActions: [
-        { label: '🚗 3-Hour Trip from Ranchi', action: 'ask', payload: 'Places near Ranchi for a 3 hour trip' },
-        { label: '🌊 Top Waterfalls', action: 'ask', payload: 'What are the top waterfalls in Jharkhand?' },
-        { label: '🗓️ 3-Day Plan under ₹10,000', action: 'ask', payload: 'Plan a 3 day trip for 2 people under ₹10000' },
-        { label: '🎨 Tribal Culture & Art', action: 'ask', payload: 'I want tribal culture and Sohrai art' },
-      ],
-    },
-  ]);
+  const [messages, setMessages] = useState<AIMessage[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // Reset/Initialize welcome message when language changes
+  useEffect(() => {
+    const welcomeMsg: AIMessage = {
+      id: 'welcome',
+      role: 'assistant',
+      content: language === 'hi'
+        ? `**जोहार!** मैं आपका **झारखंड डायरीज़ एआई यात्रा सहायक** हूँ ✦\n\nमैं 24 जिलों में 2-3 घंटे की लघु यात्राएं, झरने, बेतला सफारी, सोहराई कला और व्यक्तिगत यात्रा कार्यक्रम बनाने में आपकी सहायता कर सकता हूँ।`
+        : `**Johar!** I am your **Jharkhand Diaries AI Travel Assistant** ✦\n\nI can help you explore 24 districts, plan short 2–3 hour getaways, find waterfalls, discover Sohrai art, and curate personalized multi-day circuits.`,
+      timestamp: new Date().toISOString(),
+      quickActions: language === 'hi'
+        ? [
+            { label: '🚗 रांची से 3 घंटे की यात्रा', action: 'ask', payload: 'रांची के पास 3 घंटे की यात्रा के लिए स्थल' },
+            { label: '🌊 प्रमुख जलप्रपात', action: 'ask', payload: 'झारखंड के प्रमुख झरने कौन से हैं?' },
+            { label: '🗓️ ₹10,000 में 3-दिवसीय यात्रा', action: 'ask', payload: '2 लोगों के लिए ₹10000 के अंदर 3 दिन की यात्रा की योजना बनाओ' },
+            { label: '🎨 आदिवासी कला एवं सोहराई', action: 'ask', payload: 'आदिवासी शिल्प और सोहराई कला के बारे में बताएं' },
+          ]
+        : [
+            { label: '🚗 3-Hour Trip from Ranchi', action: 'ask', payload: 'Places near Ranchi for a 3 hour trip' },
+            { label: '🌊 Top Waterfalls', action: 'ask', payload: 'What are the top waterfalls in Jharkhand?' },
+            { label: '🗓️ 3-Day Plan under ₹10,000', action: 'ask', payload: 'Plan a 3 day trip for 2 people under ₹10000' },
+            { label: '🎨 Tribal Culture & Art', action: 'ask', payload: 'I want tribal culture and Sohrai art' },
+          ],
+    };
+
+    setMessages((prev) => (prev.length <= 1 ? [welcomeMsg] : prev));
+  }, [language]);
 
   useEffect(() => {
     if (isOpen) {
@@ -57,8 +73,19 @@ export function AIAssistantModal() {
     setInputQuery('');
     setIsLoading(true);
 
+    // Read stored tourist preferences if available
+    let touristPrefs: TouristPreferences | undefined = undefined;
     try {
-      const response = await generateAITravelResponse(text, messages, userGateway);
+      const stored = localStorage.getItem('tourist_travel_preferences');
+      if (stored) {
+        touristPrefs = JSON.parse(stored);
+      }
+    } catch {
+      // Ignore
+    }
+
+    try {
+      const response = await generateAITravelResponse(text, messages, userGateway, language, touristPrefs);
       setMessages((prev) => [...prev, response]);
     } catch (err) {
       console.error('[AI] Assistant error', err);
@@ -67,7 +94,9 @@ export function AIAssistantModal() {
         {
           id: `err-${Date.now()}`,
           role: 'assistant',
-          content: 'Sorry, I encountered an issue retrieving travel details. Please try again or explore destinations directly.',
+          content: language === 'hi'
+            ? 'क्षमा करें, यात्रा विवरण प्राप्त करने में समस्या आई। कृपया पुनः प्रयास करें।'
+            : 'Sorry, I encountered an issue retrieving travel details. Please try again or explore destinations directly.',
           timestamp: new Date().toISOString(),
         },
       ]);
@@ -96,14 +125,14 @@ export function AIAssistantModal() {
           type="button"
           onClick={() => setIsOpen(true)}
           className="group relative flex items-center gap-2 rounded-full bg-forest-900 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xl ring-2 ring-amber-400/50 hover:bg-forest-800 hover:shadow-2xl hover:scale-105 transition-all duration-200"
-          aria-label="Open AI Travel Assistant"
+          aria-label={t('ai.assistantTitle', 'Johar AI Assistant')}
         >
           <span className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
           </span>
           <Sparkles className="h-4 w-4 text-amber-300" />
-          <span>Johar AI Assistant</span>
+          <span>{t('ai.assistantTitle', 'Johar AI Assistant')}</span>
         </button>
       </div>
 
@@ -119,13 +148,13 @@ export function AIAssistantModal() {
                 </div>
                 <div>
                   <h3 className="font-display font-bold text-ink-950 text-sm flex items-center gap-1.5">
-                    <span>Johar AI Assistant</span>
+                    <span>{t('ai.assistantTitle', 'Johar AI Travel Assistant')}</span>
                     <span className="rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] px-1.5 py-0.2 font-semibold">
                       Smart GIS
                     </span>
                   </h3>
                   <p className="text-[11px] text-ink-500">
-                    Official tourism intelligence for 24 Jharkhand districts
+                    {t('ai.assistantSubtitle', 'Official tourism intelligence for 24 Jharkhand districts')}
                   </p>
                 </div>
               </div>
@@ -138,7 +167,7 @@ export function AIAssistantModal() {
                   className="text-xs font-semibold py-1 h-auto hidden sm:inline-flex"
                 >
                   <Link to="/plan-trip" onClick={() => setIsOpen(false)}>
-                    Plan Trip
+                    {language === 'hi' ? 'यात्रा योजना' : 'Plan Trip'}
                   </Link>
                 </Button>
                 <button
@@ -156,7 +185,7 @@ export function AIAssistantModal() {
             <div className="bg-sand/40 px-4 py-1.5 border-b border-ink-100 flex items-center justify-between text-[11px]">
               <span className="text-ink-600 font-medium flex items-center gap-1">
                 <MapPin className="h-3 w-3 text-clay-700" />
-                <span>Starting from:</span>
+                <span>{t('ai.startingFrom', 'Starting from:')}</span>
               </span>
               <div className="flex items-center gap-1">
                 {['Ranchi', 'Jamshedpur', 'Deoghar', 'Dhanbad'].map((city) => (
@@ -223,7 +252,7 @@ export function AIAssistantModal() {
                     {msg.suggestedDestinations && msg.suggestedDestinations.length > 0 && (
                       <div className="space-y-2 pt-2 border-t border-ink-100">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-clay-700">
-                          Recommended Locations
+                          {language === 'hi' ? 'अनुशंसित पर्यटन स्थल' : 'Recommended Locations'}
                         </p>
                         <div className="grid grid-cols-1 gap-2">
                           {msg.suggestedDestinations.map((dest) => (
@@ -249,7 +278,7 @@ export function AIAssistantModal() {
                                   to={`/map?destination=${dest.slug}`}
                                   onClick={() => setIsOpen(false)}
                                   className="rounded-lg p-1.5 text-ink-500 hover:text-ink-900 hover:bg-sand text-[10px] font-bold"
-                                  title="View on Map"
+                                  title={t('common.viewOnMap', 'View on Map')}
                                 >
                                   <MapPin className="h-3.5 w-3.5 text-clay-700" />
                                 </Link>
@@ -263,7 +292,7 @@ export function AIAssistantModal() {
                                     to={`/destinations/${dest.slug}`}
                                     onClick={() => setIsOpen(false)}
                                   >
-                                    Details
+                                    {t('common.viewDetails', 'Details')}
                                   </Link>
                                 </Button>
                               </div>
@@ -277,7 +306,7 @@ export function AIAssistantModal() {
                     {msg.suggestedOfferings && msg.suggestedOfferings.length > 0 && (
                       <div className="space-y-2 pt-2 border-t border-ink-100">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-forest-800">
-                          Recommended Stays &amp; Offerings
+                          {language === 'hi' ? 'अनुशंसित आवास एवं सेवाएं' : 'Recommended Stays & Offerings'}
                         </p>
                         <div className="grid grid-cols-1 gap-2">
                           {msg.suggestedOfferings.map((offering) => (
@@ -314,7 +343,7 @@ export function AIAssistantModal() {
                                   }
                                   onClick={() => setIsOpen(false)}
                                 >
-                                  View
+                                  {language === 'hi' ? 'देखें' : 'View'}
                                 </Link>
                               </Button>
                             </div>
@@ -358,7 +387,11 @@ export function AIAssistantModal() {
               {isLoading && (
                 <div className="flex items-center gap-2 text-xs text-ink-500 italic p-2 animate-pulse">
                   <Bot className="h-4 w-4 text-forest-700 animate-spin" />
-                  <span>Johar AI is searching Jharkhand tourism knowledge...</span>
+                  <span>
+                    {language === 'hi'
+                      ? 'जोहार एआई पर्यटन ज्ञानकोष से जानकारी खोज रहा है...'
+                      : 'Johar AI is searching Jharkhand tourism knowledge...'}
+                  </span>
                 </div>
               )}
 
@@ -376,7 +409,7 @@ export function AIAssistantModal() {
               >
                 <Input
                   type="text"
-                  placeholder="Ask for 3-hour trips, waterfalls near Ranchi, Betla safari..."
+                  placeholder={t('ai.askPlaceholder', 'Ask about waterfalls, 3-hour trips, Netarhat, Sohrai art...')}
                   value={inputQuery}
                   onChange={(e) => setInputQuery(e.target.value)}
                   className="text-xs bg-ink-50 border-ink-200 focus:border-forest-600 h-10"
