@@ -263,7 +263,7 @@ export function AccommodationsPage() {
   };
 
   return (
-    <div className="space-y-10 pb-16">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10 pb-16">
       {/* Hero Header */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ink-950 via-forest-950 to-clay-950 px-6 py-14 text-white shadow-2xl sm:px-10 sm:py-20">
         <div className="pointer-events-none absolute right-0 top-0 h-80 w-80 rounded-full bg-forest-500/15 blur-3xl" />

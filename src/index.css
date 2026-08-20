@@ -12,12 +12,14 @@
 html {
   scroll-behavior: smooth;
   background-color: #F7F3EA;
+  overflow-x: hidden;
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  overflow-x: hidden;
   background-color: #F7F3EA;
   /* Very subtle warm radial vignette — barely perceptible */
   background-image:

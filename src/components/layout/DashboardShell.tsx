@@ -32,7 +32,7 @@ export function DashboardShell({
   const verificationConfig = VERIFICATION_STATUS_LABELS[verificationStatus] ?? VERIFICATION_STATUS_LABELS.unverified;
 
   return (
-    <div className="flex min-h-[calc(100vh-1px)] bg-[#FAF8F5]">
+    <div className="flex min-h-screen w-full bg-[#FAF8F5] overflow-x-hidden">
       {/* Desktop Sidebar */}
       <Sidebar role={role} />
 
@@ -105,7 +105,7 @@ export function DashboardShell({
           </div>
         </header>
 
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full min-w-0">
           {children}
         </div>
       </main>

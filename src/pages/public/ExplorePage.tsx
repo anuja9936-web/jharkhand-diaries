@@ -598,7 +598,7 @@ export function ExplorePage() {
         />
       )}
 
-      <div className="space-y-10">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
         {/* ── Hero + Search ───────────────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-ink-950 via-ink-900 to-clay-950 px-6 py-14 text-white shadow-2xl sm:px-10 sm:py-20">
           {/* Background glows */}

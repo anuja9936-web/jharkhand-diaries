@@ -367,17 +367,19 @@ export function DestinationDetailPage() {
   if (error) return <ErrorState title="Unable to load destination" message={error} />;
   if (!destination) {
     return (
-      <Card className="border-dashed border-ink-300 bg-white/80 text-center">
-        <div className="space-y-4">
-          <h1 className="text-2xl font-semibold text-ink-900">Destination not found</h1>
-          <p className="text-sm leading-6 text-ink-600">
-            This destination may not exist yet or may still be in draft status.
-          </p>
-          <Button asChild variant="secondary">
-            <Link to="/explore">Back to Explore</Link>
-          </Button>
-        </div>
-      </Card>
+      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
+        <Card className="border-dashed border-ink-300 bg-white/80 text-center">
+          <div className="space-y-4">
+            <h1 className="text-2xl font-semibold text-ink-900">Destination not found</h1>
+            <p className="text-sm leading-6 text-ink-600">
+              This destination may not exist yet or may still be in draft status.
+            </p>
+            <Button asChild variant="secondary">
+              <Link to="/explore">Back to Explore</Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
     );
   }
 
@@ -396,7 +398,7 @@ export function DestinationDetailPage() {
         />
       )}
 
-      <div className="space-y-10">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
         {/* ── Breadcrumb ─────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-3">
           <Button asChild variant="secondary">
