@@ -11,6 +11,8 @@ import {
   updateProviderListing,
 } from '../../services/provider/providerService';
 
+import { ProviderAIWriterModal } from '../../components/ai/ProviderAIWriterModal';
+
 interface ListingFormState {
   name: string;
   slug: string;
@@ -228,7 +230,22 @@ export function ProviderListingFormPage() {
                 {isEditMode ? 'Refine destination details' : 'Create a tourism entry'}
               </h2>
             </div>
-            <Badge variant="accent">{form.status === 'published' ? 'Published ready' : 'Draft mode'}</Badge>
+            <div className="flex items-center gap-2">
+              <ProviderAIWriterModal
+                kind="experience"
+                currentTitle={form.name}
+                district={form.district || 'Ranchi'}
+                onApply={({ title, shortDescription, description }) => {
+                  setForm((cur) => ({
+                    ...cur,
+                    name: title,
+                    short_description: shortDescription,
+                    description: description,
+                  }));
+                }}
+              />
+              <Badge variant="accent">{form.status === 'published' ? 'Published ready' : 'Draft mode'}</Badge>
+            </div>
           </div>
 
           <form className="grid gap-5 lg:grid-cols-2" onSubmit={handleSubmit}>

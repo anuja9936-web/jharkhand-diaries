@@ -5,6 +5,7 @@ import { Badge, Button, Card, Input, Select, Textarea } from '../../components/u
 import { EmptyState, ErrorState, LoadingState, PageHeader, StatCard } from '../../components/common/StateBlocks';
 import { ProviderOfferingCard } from '../../components/provider/ProviderOfferingCard';
 import { ProviderRequestCard } from '../../components/provider/ProviderRequestCard';
+import { ProviderAIWriterModal } from '../../components/ai/ProviderAIWriterModal';
 import { PROVIDER_CATEGORY_OPTIONS, getProviderOfferingKindLabel } from '../../constants/provider';
 import { DEFAULT_DESTINATION_IMAGE } from '../../constants/destinations';
 import { formatIndianCurrency } from '../../lib/utils';
@@ -490,7 +491,22 @@ function OfferingFormPage({
                 {isEditMode ? `Refine your ${config.singular.toLowerCase()}` : `Create a ${config.singular.toLowerCase()} listing`}
               </h2>
             </div>
-            <Badge variant="accent">{form.status === 'published' ? 'Ready for public view' : 'Draft mode'}</Badge>
+            <div className="flex items-center gap-2">
+              <ProviderAIWriterModal
+                kind={kind}
+                currentTitle={form.name}
+                district={form.district || 'Ranchi'}
+                onApply={({ title, shortDescription, description }) => {
+                  setForm((cur) => ({
+                    ...cur,
+                    name: title,
+                    short_description: shortDescription,
+                    description: description,
+                  }));
+                }}
+              />
+              <Badge variant="accent">{form.status === 'published' ? 'Ready for public view' : 'Draft mode'}</Badge>
+            </div>
           </div>
 
           <form className="grid gap-5 lg:grid-cols-2" onSubmit={handleSubmit}>

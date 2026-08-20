@@ -23,6 +23,7 @@ import { ToursPage } from '../pages/public/ToursPage';
 import { TransportPage } from '../pages/public/TransportPage';
 import { BlogsPage } from '../pages/public/BlogsPage';
 import { EventsPage } from '../pages/public/EventsPage';
+import { AIPlannerPage } from '../pages/public/AIPlannerPage';
 import { DashboardRedirectPage } from '../pages/auth/DashboardRedirectPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { RegisterPage } from '../pages/auth/RegisterPage';
@@ -106,6 +107,9 @@ export function AppRoutes() {
         <Route path="/marketplace" element={<MarketplacePage />} />
         <Route path="/blogs" element={<BlogsPage />} />
         <Route path="/events" element={<EventsPage />} />
+        <Route path="/plan-trip" element={<AIPlannerPage />} />
+        <Route path="/ai-planner" element={<Navigate to="/plan-trip" replace />} />
+        <Route path="/planner" element={<Navigate to="/plan-trip" replace />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
 

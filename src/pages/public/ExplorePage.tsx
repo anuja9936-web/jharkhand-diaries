@@ -18,6 +18,7 @@ import {
 import { DestinationCard } from '../../components/destinations/DestinationCard';
 import { FavouriteButton } from '../../components/destinations/FavouriteButton';
 import { AddToTripModal } from '../../components/destinations/AddToTripModal';
+import { AISmartRecommendations } from '../../components/ai/AISmartRecommendations';
 import { ErrorState, LoadingState } from '../../components/common/StateBlocks';
 import { Badge, Button, Card } from '../../components/ui';
 import {
@@ -1203,6 +1204,11 @@ export function ExplorePage() {
             </div>
           </div>
         )}
+
+        {/* ── AI Smart Recommendations ─────────────────────────────────── */}
+        <div className="pt-8 border-t border-ink-200/80">
+          <AISmartRecommendations />
+        </div>
       </div>
     </>
   );

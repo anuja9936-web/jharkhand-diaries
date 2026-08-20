@@ -57,6 +57,12 @@ export const publicNavGroups: NavGroup[] = [
         icon: Globe2,
         description: 'Curated visual showcase of Jharkhand’s natural and tribal splendor',
       },
+      {
+        label: 'AI Trip Planner',
+        href: '/plan-trip',
+        icon: Sparkles,
+        description: 'Personalized day-by-day itineraries tailored to your budget & interests',
+      },
     ],
   },
   {

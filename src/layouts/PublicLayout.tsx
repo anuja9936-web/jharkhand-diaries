@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Footer } from '../components/navigation/Footer';
 import { Navbar } from '../components/navigation/Navbar';
+import { AIAssistantModal } from '../components/ai/AIAssistantModal';
 
 export function PublicLayout() {
   return (
@@ -10,6 +11,7 @@ export function PublicLayout() {
         <Outlet />
       </main>
       <Footer />
+      <AIAssistantModal />
     </div>
   );
 }

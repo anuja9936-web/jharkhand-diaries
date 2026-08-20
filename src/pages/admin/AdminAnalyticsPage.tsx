@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Card } from '../../components/ui';
 import { ErrorState, LoadingState, PageHeader, StatCard } from '../../components/common/StateBlocks';
+import { AdminAIInsightsCard } from '../../components/ai/AdminAIInsightsCard';
 import {
   getAdminDashboardMetrics,
   getAdminDistrictsData,
@@ -123,6 +124,14 @@ export function AdminAnalyticsPage() {
           icon={CalendarCheck}
         />
       </div>
+
+      {/* AI Tourism Governance Insights */}
+      <AdminAIInsightsCard
+        totalDestinations={metrics.destinations.total}
+        totalProviders={metrics.providers.total}
+        totalOfferings={metrics.offerings.total}
+        pendingFeedbackCount={metrics.feedback.new + metrics.feedback.under_review}
+      />
 
       {/* 2-Column Analytics Breakdown: Offerings by Type & Provider Verification Distribution */}
       <div className="grid gap-8 lg:grid-cols-2">

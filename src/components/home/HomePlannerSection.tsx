@@ -55,8 +55,7 @@ export function HomePlannerSection() {
 
   const handlePlanSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Navigate to tourist itinerary creation with query parameters or to the tourist planner
-    navigate('/tourist/itinerary/new');
+    navigate('/plan-trip');
   };
 
   return (
