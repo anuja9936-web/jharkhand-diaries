@@ -318,7 +318,7 @@ export function MarketplacePage() {
             <ShoppingBag className="h-3.5 w-3.5" />
             <span>JHARKHAND LOCAL MARKETPLACE</span>
           </div>
-          <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+          <h1 className="font-display text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl">
             Shop Local. Experience Local.
           </h1>
           <p className="mt-4 text-sm text-white/80 sm:text-base sm:mt-5 max-w-2xl mx-auto leading-relaxed">

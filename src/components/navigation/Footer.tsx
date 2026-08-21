@@ -143,6 +143,11 @@ export function Footer() {
                 </Link>
               </li>
               <li className="pt-2">
+                <Link to="/login" className="text-sand font-medium hover:text-white transition-colors">
+                  Tourist Sign In / Login →
+                </Link>
+              </li>
+              <li>
                 <Link to="/provider" className="text-sand font-medium hover:text-white transition-colors">
                   Service Provider Portal →
                 </Link>
