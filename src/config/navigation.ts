@@ -1,13 +1,16 @@
 import {
   BarChart3,
+  Bell,
   BookOpen,
   Building2,
   Calendar,
   Car,
   Compass,
   Globe2,
+  Heart,
   Home,
   Info,
+  Map,
   MapPin,
   MessageSquare,
   ShieldCheck,
@@ -148,14 +151,16 @@ export const partnerNavItems = [
 ];
 
 export const touristNavItems: NavItem[] = [
-  { label: 'Dashboard', href: '/tourist', icon: Home },
-  { label: 'My Bookings', href: '/tourist/requests', icon: Calendar },
+  { label: 'Dashboard', href: '/tourist/dashboard', icon: Home },
   { label: 'Explore', href: '/tourist/explore', icon: Compass },
-  { label: 'Trips', href: '/tourist/itinerary', icon: MapPin },
-  { label: 'Profile', href: '/tourist/profile', icon: Users },
-  { label: 'Audio Guide', href: '/tourist/audio-guide', icon: Users },
+  { label: '24-District Map', href: '/tourist/map', icon: Map },
+  { label: 'Johar AI', href: '/tourist/johar-ai', icon: Sparkles },
+  { label: 'My Trips', href: '/tourist/itinerary', icon: Calendar },
+  { label: 'My Bookings', href: '/tourist/requests', icon: Building2 },
+  { label: 'Saved Wishlist', href: '/tourist/favorites', icon: Heart },
   { label: 'Eco Passport', href: '/tourist/eco-passport', icon: ShieldCheck },
-  { label: 'AR Craft', href: '/tourist/ar', icon: Globe2 },
+  { label: 'Notifications', href: '/tourist/notifications', icon: Bell },
+  { label: 'Profile', href: '/tourist/profile', icon: Users },
 ];
 
 export const providerNavItems: NavItem[] = [

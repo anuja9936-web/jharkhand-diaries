@@ -48,6 +48,8 @@ export async function getPublishedDestinations(): Promise<Destination[]> {
   return fetchPublishedDestinations();
 }
 
+export const getDestinations = getPublishedDestinations;
+
 export async function getDestinationBySlug(slug: string): Promise<Destination | null> {
   const client = getSupabaseClient();
   if (client) {

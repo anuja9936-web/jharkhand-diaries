@@ -28,18 +28,19 @@ import { DashboardRedirectPage } from '../pages/auth/DashboardRedirectPage';
 import { LoginPage } from '../pages/auth/LoginPage';
 import { RegisterPage } from '../pages/auth/RegisterPage';
 import { GovernmentLoginPage } from '../pages/auth/GovernmentLoginPage';
-import {
-  TouristAudioGuidePage,
-  TouristEcoPassportPage,
-  TouristExplorePage,
-  TouristARPage,
-} from '../pages/tourist/TouristPages';
 import { TouristDashboardPage } from '../pages/tourist/TouristDashboardPage';
+import { TouristExplorePage } from '../pages/tourist/TouristExplorePage';
+import { TouristMapPage } from '../pages/tourist/TouristMapPage';
+import { TouristJoharAIPage } from '../pages/tourist/TouristJoharAIPage';
+import { TouristFavoritesPage } from '../pages/tourist/TouristFavoritesPage';
+import { TouristEcoPassportPage } from '../pages/tourist/TouristEcoPassportPage';
+import { TouristNotificationsPage } from '../pages/tourist/TouristNotificationsPage';
 import { TouristBookingsPage } from '../pages/tourist/TouristBookingsPage';
 import { TouristProfilePage } from '../pages/tourist/TouristProfilePage';
 import { TouristTripDetailPage } from '../pages/tourist/TouristTripDetailPage';
 import { TouristTripFormPage } from '../pages/tourist/TouristTripFormPage';
 import { TouristTripsPage } from '../pages/tourist/TouristTripsPage';
+import { TouristAudioGuidePage, TouristARPage } from '../pages/tourist/TouristPages';
 import {
   ProviderAnalyticsPage,
   ProviderDashboardPage,
@@ -151,15 +152,23 @@ export function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<TouristDashboardPage />} />
-        <Route path="requests" element={<TouristBookingsPage />} />
-        <Route path="bookings" element={<TouristBookingsPage />} />
         <Route path="explore" element={<TouristExplorePage />} />
+        <Route path="map" element={<TouristMapPage />} />
+        <Route path="johar-ai" element={<TouristJoharAIPage />} />
+        <Route path="ai" element={<Navigate to="/tourist/johar-ai" replace />} />
         <Route path="itinerary" element={<TouristTripsPage />} />
         <Route path="itinerary/new" element={<TouristTripFormPage />} />
         <Route path="itinerary/:tripId" element={<TouristTripDetailPage />} />
+        <Route path="trips" element={<Navigate to="/tourist/itinerary" replace />} />
+        <Route path="requests" element={<TouristBookingsPage />} />
+        <Route path="bookings" element={<TouristBookingsPage />} />
+        <Route path="favorites" element={<TouristFavoritesPage />} />
+        <Route path="wishlist" element={<Navigate to="/tourist/favorites" replace />} />
+        <Route path="eco-passport" element={<TouristEcoPassportPage />} />
+        <Route path="eco-points" element={<Navigate to="/tourist/eco-passport" replace />} />
+        <Route path="notifications" element={<TouristNotificationsPage />} />
         <Route path="profile" element={<TouristProfilePage />} />
         <Route path="audio-guide" element={<TouristAudioGuidePage />} />
-        <Route path="eco-passport" element={<TouristEcoPassportPage />} />
         <Route path="ar" element={<TouristARPage />} />
       </Route>
 

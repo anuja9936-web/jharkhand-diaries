@@ -292,3 +292,74 @@ export async function removeTripDestination(tripDestinationId: string): Promise<
     throw error;
   }
 }
+
+export interface GeneratedItineraryInput {
+  title: string;
+  start_location?: string;
+  budget?: number;
+  duration_days?: number;
+  days: Array<{
+    dayNumber: number;
+    destinationName?: string;
+    destinationSlug?: string;
+    activities?: string[];
+    notes?: string;
+  }>;
+}
+
+export async function saveGeneratedItineraryToTrip(input: GeneratedItineraryInput): Promise<TripRecord> {
+  const client = getClient();
+  const userId = await getCurrentUserId();
+
+  // 1. Create main trip
+  const { data: trip, error: tripErr } = await client
+    .from('trips')
+    .insert({
+      user_id: userId,
+      title: input.title,
+      start_location: input.start_location || 'Ranchi',
+      budget: input.budget ?? null,
+      notes: `AI-Generated ${input.duration_days || input.days.length}-day Jharkhand Itinerary`,
+    })
+    .select('*')
+    .single();
+
+  if (tripErr) throw tripErr;
+
+  // 2. Fetch destination lookups
+  const { data: dbDests } = await client.from('destinations').select('id, name, slug');
+  const destMap = new Map((dbDests ?? []).map((d) => [d.name.toLowerCase(), d.id]));
+  const slugMap = new Map((dbDests ?? []).map((d) => [d.slug.toLowerCase(), d.id]));
+
+  // 3. Insert stops
+  for (let i = 0; i < input.days.length; i++) {
+    const day = input.days[i];
+    let destId: string | null = null;
+
+    if (day.destinationSlug && slugMap.has(day.destinationSlug.toLowerCase())) {
+      destId = slugMap.get(day.destinationSlug.toLowerCase())!;
+    } else if (day.destinationName && destMap.has(day.destinationName.toLowerCase())) {
+      destId = destMap.get(day.destinationName.toLowerCase())!;
+    } else if (dbDests && dbDests.length > 0) {
+      // Pick first matching or fallback
+      destId = dbDests[i % dbDests.length].id;
+    }
+
+    if (destId) {
+      try {
+        await client.from('trip_destinations').insert({
+          trip_id: trip.id,
+          destination_id: destId,
+          day_number: day.dayNumber || i + 1,
+          visit_order: i + 1,
+          notes: day.activities?.join(' • ') || day.notes || null,
+        });
+      } catch (destInsertErr) {
+        console.warn('Trip stop insert warning:', destInsertErr);
+      }
+    }
+  }
+
+  return trip as TripRecord;
+}
+
