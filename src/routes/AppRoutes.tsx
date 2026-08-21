@@ -88,6 +88,7 @@ import {
   AdminDestinationsPage,
   AdminDistrictsPage,
   AdminFeedbackPage,
+  AdminMediaManagerPage,
   AdminProvidersPage,
   AdminSettingsPage,
   AdminVendorsPage,
@@ -262,6 +263,7 @@ export function AppRoutes() {
         <Route path="vendors" element={<AdminVendorsPage />} />
         <Route path="providers" element={<AdminProvidersPage />} />
         <Route path="destinations" element={<AdminDestinationsPage />} />
+        <Route path="media" element={<AdminMediaManagerPage />} />
         <Route path="districts" element={<AdminDistrictsPage />} />
         <Route path="alerts" element={<AdminAlertsPage />} />
         <Route path="feedback" element={<AdminFeedbackPage />} />

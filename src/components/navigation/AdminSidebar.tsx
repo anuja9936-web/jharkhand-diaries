@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   BarChart3,
+  Camera,
   ChevronRight,
   FileText,
   Landmark,
@@ -24,6 +25,7 @@ interface AdminNavItem {
 const ADMIN_PRIMARY_LINKS: AdminNavItem[] = [
   { label: 'Administration Overview', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Destination Management', href: '/admin/destinations', icon: MapPin },
+  { label: 'Media & Photo Manager', href: '/admin/media', icon: Camera },
   { label: 'Provider Verification', href: '/admin/vendors', icon: ShieldCheck },
   { label: '24 District Portals', href: '/admin/districts', icon: Map },
 ];

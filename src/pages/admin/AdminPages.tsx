@@ -6,5 +6,6 @@ export { AdminAlertsPage } from './AdminAlertsPage';
 export { AdminFeedbackPage } from './AdminFeedbackPage';
 export { AdminAnalyticsPage } from './AdminAnalyticsPage';
 export { AdminContentPage } from './AdminContentPage';
+export { AdminMediaManagerPage } from './AdminMediaManagerPage';
 export { AdminSettingsPage } from './AdminSettingsPage';
 

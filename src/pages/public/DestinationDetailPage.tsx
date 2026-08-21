@@ -20,6 +20,7 @@ import { EmptyState, ErrorState, LoadingState } from '../../components/common/St
 import { FavouriteButton } from '../../components/destinations/FavouriteButton';
 import { DestinationCard } from '../../components/destinations/DestinationCard';
 import { AddToTripModal } from '../../components/destinations/AddToTripModal';
+import { TourismImage } from '../../components/common/TourismImage';
 import {
   DEFAULT_DESTINATION_IMAGE,
   getDestinationCategoryLabel,
@@ -121,17 +122,15 @@ function OfferingCard({ offering, kind }: { offering: ProviderOffering; kind: 'e
   const href = kind === 'experience' ? `/experiences/${offering.id}` : `/stays/${offering.id}`;
   return (
     <Card className="group overflow-hidden p-0 hover:-translate-y-1 transition-all duration-300 hover:shadow-lg">
-      {offering.cover_image ? (
-        <div className="relative aspect-[4/3] overflow-hidden bg-sand">
-          <img
-            src={offering.cover_image}
-            alt={offering.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink-950/60 via-transparent to-transparent" />
-        </div>
-      ) : null}
+      <div className="relative aspect-[4/3] overflow-hidden bg-sand">
+        <TourismImage
+          src={offering.cover_image}
+          alt={offering.name}
+          category={offering.category}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-950/60 via-transparent to-transparent pointer-events-none" />
+      </div>
       <div className="space-y-2 p-4">
         <h4 className="font-semibold text-ink-900">{offering.name}</h4>
         {offering.district && (
@@ -464,15 +463,16 @@ export function DestinationDetailPage() {
 
         {/* ── Hero ───────────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-3xl shadow-2xl">
-          <img
+          <TourismImage
             src={coverImage}
             alt={destination.name}
+            category={destination.category}
             className="h-72 sm:h-[26rem] w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink-950/90 via-ink-950/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-950/90 via-ink-950/40 to-transparent pointer-events-none" />
 
           {/* Favourite */}
-          <div className="absolute right-5 top-5">
+          <div className="absolute right-5 top-5 z-10">
             <FavouriteButton
               isFavourite={isFavourite(destination.id)}
               loading={pendingDestinationId === destination.id}
@@ -488,7 +488,7 @@ export function DestinationDetailPage() {
           </div>
 
           {/* Bottom hero content */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
+          <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10 z-10">
             <h1 className="font-display text-3xl sm:text-5xl font-bold text-white">
               {destination.name}
             </h1>
@@ -548,12 +548,12 @@ export function DestinationDetailPage() {
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-clay-700">Gallery</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {destination.gallery.slice(0, 4).map((item, index) => (
-                    <img
+                    <TourismImage
                       key={`${destination.slug}-gallery-${index}`}
                       src={item}
                       alt={`${destination.name} gallery ${index + 1}`}
+                      category={destination.category}
                       className="h-36 w-full rounded-2xl object-cover"
-                      loading="lazy"
                     />
                   ))}
                 </div>

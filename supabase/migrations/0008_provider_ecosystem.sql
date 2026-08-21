@@ -93,6 +93,8 @@ with check (
 );
 
 -- 5. Update get_public_provider_profile RPC to include verification fields
+drop function if exists public.get_public_provider_profile(uuid);
+
 create or replace function public.get_public_provider_profile(provider_user_id uuid)
 returns table (
   id uuid,
