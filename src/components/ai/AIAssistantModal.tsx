@@ -140,26 +140,26 @@ export function AIAssistantModal() {
   return (
     <>
       {/* Floating Trigger Pill (Fixed Bottom-Right) */}
-      <div className="fixed bottom-5 right-5 z-40">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="group relative flex items-center gap-2 rounded-full bg-forest-900 px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xl ring-2 ring-amber-400/50 hover:bg-forest-800 hover:shadow-2xl hover:scale-105 transition-all duration-200"
+          className="group relative flex items-center gap-2 rounded-full bg-forest-900 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-white shadow-xl ring-2 ring-amber-400/50 hover:bg-forest-800 hover:shadow-2xl hover:scale-105 transition-all duration-200"
           aria-label={t('ai.assistantTitle', 'Johar AI Assistant')}
         >
-          <span className="relative flex h-3 w-3">
+          <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-amber-500"></span>
           </span>
-          <Sparkles className="h-4 w-4 text-amber-300" />
-          <span>{t('ai.assistantTitle', 'Johar AI Assistant')}</span>
+          <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-300" />
+          <span className="truncate">{t('ai.assistantTitle', 'Johar AI Assistant')}</span>
         </button>
       </div>
 
       {/* Slide-in Assistant Drawer / Modal */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:justify-end sm:p-6 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="flex flex-col h-[85vh] sm:h-[650px] w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl bg-[#FAF8F5] shadow-2xl border border-ink-200/90 overflow-hidden font-sans">
+          <div className="flex flex-col h-[88vh] sm:h-[650px] w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl bg-[#FAF8F5] shadow-2xl border border-ink-200/90 overflow-hidden font-sans">
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-ink-200/80">
               <div className="flex items-center gap-3">

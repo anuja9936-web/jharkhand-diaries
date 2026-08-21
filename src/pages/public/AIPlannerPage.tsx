@@ -450,7 +450,7 @@ export function AIPlannerPage() {
                     </div>
 
                     {/* Total Budget Card */}
-                    <div className="shrink-0 rounded-2xl bg-amber-50/80 border border-amber-300/80 p-4 text-center min-w-[170px]">
+                    <div className="shrink-0 rounded-2xl bg-amber-50/80 border border-amber-300/80 p-4 text-center w-full sm:w-auto min-w-[170px]">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block">
                         {t('ai.estimatedBudget', 'Estimated Total Budget')}
                       </span>

@@ -140,20 +140,20 @@ export function HeroCarousel() {
         </div>
 
         {/* Dynamic Theme Heading */}
-        <h1 className="font-display text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.9)] max-w-4xl leading-[1.1]">
+        <h1 className="font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white drop-shadow-[0_4px_30px_rgba(0,0,0,0.9)] max-w-4xl leading-[1.1]">
           {currentSlide.themeTitle}
         </h1>
 
         {/* Supporting Copy */}
-        <p className="mt-5 max-w-2xl text-sm sm:text-base md:text-lg leading-relaxed text-sand/90 font-medium drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+        <p className="mt-4 sm:mt-5 max-w-2xl text-xs sm:text-base md:text-lg leading-relaxed text-sand/90 font-medium drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
           Explore waterfalls, forests, heritage, cuisine, tribal art and unforgettable experiences across Jharkhand.
         </p>
 
         {/* Action Buttons */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5 sm:gap-4">
+        <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
           <Link
             to="/explore"
-            className="group inline-flex items-center gap-2.5 rounded-full bg-amber-400 px-7 py-3.5 text-sm font-bold text-ink-950 shadow-2xl transition-all duration-300 hover:bg-amber-300 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            className="group inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 sm:px-7 py-2.5 sm:py-3.5 text-xs sm:text-sm font-bold text-ink-950 shadow-2xl transition-all duration-300 hover:bg-amber-300 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             <Compass className="h-4 w-4 text-ink-900 transition-transform group-hover:rotate-45 duration-300" />
             <span>Explore Jharkhand</span>
@@ -162,29 +162,29 @@ export function HeroCarousel() {
 
           <a
             href="#trip-planner"
-            className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/50 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/20 hover:border-white/50 active:scale-95 focus:outline-none"
+            className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/50 px-5 sm:px-6 py-2.5 sm:py-3.5 text-xs sm:text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/20 hover:border-white/50 active:scale-95 focus:outline-none"
           >
             <span>Plan Your Journey</span>
           </a>
         </div>
 
         {/* Premium Search Bar Interface */}
-        <div className="mt-8 sm:mt-10 w-full max-w-2xl">
+        <div className="mt-6 sm:mt-10 w-full max-w-2xl">
           <form
             onSubmit={handleSearchSubmit}
             className="relative flex items-center rounded-2xl border border-white/25 bg-black/50 p-1.5 shadow-[0_15px_35px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-all focus-within:border-amber-400/70 focus-within:ring-2 focus-within:ring-amber-400/30"
           >
-            <Search className="ml-3.5 h-5 w-5 text-amber-300 shrink-0" />
+            <Search className="ml-2.5 sm:ml-3.5 h-4 sm:h-5 w-4 sm:w-5 text-amber-300 shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search destinations, experiences, cuisine, tribal art..."
-              className="w-full bg-transparent px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-sand/70 focus:outline-none"
+              placeholder="Search destinations, experiences, art..."
+              className="w-full bg-transparent px-2.5 sm:px-3.5 py-2 sm:py-2.5 text-xs sm:text-sm text-white placeholder-sand/70 focus:outline-none min-w-0"
             />
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 px-5 py-2 text-xs font-bold text-ink-950 transition hover:bg-amber-300 hover:scale-[1.02] active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-400 px-3.5 sm:px-5 py-2 text-xs font-bold text-ink-950 transition hover:bg-amber-300 hover:scale-[1.02] active:scale-95 shrink-0"
             >
               <span>Search</span>
             </button>

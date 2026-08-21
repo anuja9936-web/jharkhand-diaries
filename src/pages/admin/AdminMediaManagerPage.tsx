@@ -380,7 +380,7 @@ export function AdminMediaManagerPage() {
       {/* Main Workspace: Left = Listings Selector, Right = Photo & Gallery Editor */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Left Column: Listings in selected category */}
-        <Card className="p-4 lg:col-span-4 flex flex-col h-[650px] space-y-3">
+        <Card className="p-4 lg:col-span-4 flex flex-col h-[360px] sm:h-[440px] lg:h-[650px] space-y-3">
           <div className="flex items-center justify-between pb-1 border-b border-ink-100">
             <h3 className="font-display text-sm font-bold text-ink-900">
               {activeCategoryConfig.label}

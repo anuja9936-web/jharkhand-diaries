@@ -301,16 +301,16 @@ export function MapDiscoveryPage() {
           </div>
 
           {/* Search + Action Controls */}
-          <div className="flex flex-wrap items-center gap-2 flex-1 max-w-2xl justify-end">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto lg:flex-1 lg:max-w-2xl justify-start sm:justify-end">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[200px] max-w-md">
+            <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[180px] max-w-md">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-400" />
               <Input
                 type="search"
                 placeholder="Search Jharkhand destinations (e.g. Hundru, Betla, Deoghar)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-8 text-xs bg-sand/30 border-ink-200 rounded-full focus:bg-white focus:border-clay-500"
+                className="pl-9 pr-8 text-xs bg-sand/30 border-ink-200 rounded-full focus:bg-white focus:border-clay-500 w-full"
               />
               {searchTerm && (
                 <button
@@ -359,7 +359,7 @@ export function MapDiscoveryPage() {
               size="sm"
               onClick={handleNearMe}
               disabled={isRequesting}
-              className={`rounded-full text-xs font-bold px-3.5 ${
+              className={`rounded-full text-xs font-bold px-3 sm:px-3.5 shrink-0 ${
                 isNearMeActive && userLocation
                   ? 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'bg-white hover:bg-sand text-ink-800 border-ink-200'
@@ -375,7 +375,7 @@ export function MapDiscoveryPage() {
               variant="secondary"
               size="sm"
               onClick={handleResetToState}
-              className="rounded-full text-xs font-bold bg-sand/50 text-ink-800 hover:bg-sand border-ink-200"
+              className="rounded-full text-xs font-bold bg-sand/50 text-ink-800 hover:bg-sand border-ink-200 shrink-0"
               title="Reset View to Full Jharkhand State"
             >
               <RotateCcw className="h-3.5 w-3.5 mr-1 text-clay-700" />
@@ -397,7 +397,7 @@ export function MapDiscoveryPage() {
                 key={cat.id}
                 type="button"
                 onClick={() => setActiveCategory(cat.id)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                   isActive
                     ? 'bg-forest-900 text-white shadow-xs'
                     : 'bg-white text-ink-700 hover:bg-sand border border-ink-200'
@@ -429,9 +429,9 @@ export function MapDiscoveryPage() {
       )}
 
       {/* ── Main Map Area + Interactive Panels ──────────────────────────────── */}
-      <main className="flex-1 relative flex flex-col min-h-[620px]">
+      <main className="flex-1 relative flex flex-col min-h-[440px] sm:min-h-[560px] lg:min-h-[640px]">
         {/* Map Container */}
-        <div className="flex-1 w-full relative min-h-[500px]">
+        <div className="flex-1 w-full relative min-h-[400px]">
           <TourismMap
             destinations={filteredDestinations}
             selectedDestination={selectedDestination}
@@ -448,35 +448,34 @@ export function MapDiscoveryPage() {
         {/* ── District Info Card Overlay (When District is Selected & no single destination active) ── */}
         {selectedDistrictInfo && !selectedDestination && (
           <div className="absolute top-4 left-4 right-4 sm:right-auto sm:max-w-md z-[500] pointer-events-auto">
-            <Card className="p-4 sm:p-5 bg-white/95 backdrop-blur-md border border-amber-300 shadow-xl rounded-2xl space-y-3">
+            <Card className="border border-ink-200/90 bg-[#FFFDF9]/95 p-4 sm:p-5 shadow-2xl backdrop-blur-md space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 uppercase tracking-wider">
-                    <MapPin className="h-3.5 w-3.5 text-amber-600" />
-                    <span>{selectedDistrictInfo.name} District</span>
-                  </div>
-                  <h2 className="font-display text-lg font-bold text-ink-950 mt-0.5">
-                    {selectedDistrictInfo.name}
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-clay-700">
+                    District Insights • Jharkhand Tourism
+                  </span>
+                  <h2 className="font-display text-lg sm:text-xl font-bold text-ink-950">
+                    {selectedDistrictInfo.name} District
                   </h2>
-                  <p className="text-xs text-ink-600 mt-1 leading-relaxed">
-                    {selectedDistrictInfo.description}
-                  </p>
                 </div>
-
                 <button
                   type="button"
                   onClick={handleResetToState}
-                  className="rounded-full p-1 text-ink-400 hover:text-ink-800 hover:bg-sand transition"
-                  title="Close District View"
+                  className="rounded-full p-1 text-ink-400 hover:text-ink-700 hover:bg-sand transition"
+                  aria-label="Close district info"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              {/* Key Attractions in District */}
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-ink-500 block mb-1.5">
-                  Featured Tourist Attractions:
+              <p className="text-xs text-ink-700 leading-relaxed">
+                {selectedDistrictInfo.description}
+              </p>
+
+              {/* Key Attractions quick chips */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-ink-500">
+                  Key Attractions
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {selectedDistrictInfo.keyAttractions.map((attr) => (
@@ -515,8 +514,8 @@ export function MapDiscoveryPage() {
             <div className="mx-auto max-w-7xl space-y-5">
               {/* Destination Header Row */}
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="relative h-24 w-28 sm:h-28 sm:w-36 rounded-2xl overflow-hidden bg-sand shrink-0 shadow-md">
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  <div className="relative h-28 w-full sm:h-28 sm:w-36 rounded-2xl overflow-hidden bg-sand shrink-0 shadow-md">
                     <img
                       src={selectedDestination.cover_image || '/images/destinations/hundru-falls.jpg'}
                       alt={selectedDestination.name}
@@ -534,7 +533,7 @@ export function MapDiscoveryPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-1 max-w-2xl">
+                  <div className="space-y-1 max-w-2xl min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-bold text-clay-700 uppercase tracking-wider flex items-center gap-1">
                         <MapPin className="h-3.5 w-3.5" />
@@ -577,11 +576,11 @@ export function MapDiscoveryPage() {
                 </div>
 
                 {/* Primary Action Buttons */}
-                <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0">
                   <Button
                     asChild
                     size="sm"
-                    className="bg-forest-900 text-white hover:bg-forest-800 text-xs font-bold px-4"
+                    className="bg-forest-900 text-white hover:bg-forest-800 text-xs font-bold px-4 flex-1 sm:flex-initial"
                   >
                     <Link to={`/destinations/${selectedDestination.slug}`}>
                       <span>View Details</span>
@@ -593,7 +592,7 @@ export function MapDiscoveryPage() {
                     asChild
                     size="sm"
                     variant="secondary"
-                    className="bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100 text-xs font-bold px-4"
+                    className="bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100 text-xs font-bold px-4 flex-1 sm:flex-initial"
                   >
                     <Link to={`/plan-trip?destination=${encodeURIComponent(selectedDestination.name)}&district=${encodeURIComponent(selectedDestination.district)}`}>
                       <Plus className="mr-1.5 h-3.5 w-3.5 text-amber-700" />
@@ -614,7 +613,7 @@ export function MapDiscoveryPage() {
                         })
                       );
                     }}
-                    className="text-xs font-bold px-3.5 bg-sand text-clay-800 border border-ink-200 hover:bg-sand/80"
+                    className="text-xs font-bold px-3.5 bg-sand text-clay-800 border border-ink-200 hover:bg-sand/80 flex-1 sm:flex-initial"
                   >
                     <Sparkles className="mr-1.5 h-3.5 w-3.5 text-amber-600" />
                     <span>Ask Johar AI</span>
